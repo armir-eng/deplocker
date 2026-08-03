@@ -1,0 +1,1 @@
+CREATE DATABASE deplocker_test;

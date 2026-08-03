@@ -1,0 +1,5 @@
+.claude/
+docs/
+.build-dev.stamp
+dev_scripts/
+.vscode/
