@@ -43,10 +43,10 @@ BUILD_DEV_STAMP    = .build-dev.stamp
 .PHONY: backend-install-local backend-clean-local backend-reformat-local \
         backend-ci-local backend-run-local backend-stop-local
 
-## Resolve and install Python dependencies into backend/.venv
+## Install the locked Python dependencies into backend/.venv
 backend-install-local:
 	cd $(BACKEND) && \
-	uv sync
+	uv sync --frozen
 
 ## Remove the virtualenv and the resolved lockfile
 backend-clean-local:
@@ -95,7 +95,7 @@ backend-test-ci:
 # --- Local development -------------------------------------------------------
 
 .PHONY: install-frontend-local clean-frontend-local frontend-reformat-local \
-        frontend-run-local
+        frontend-ci-local
 
 ## Install npm dependencies into frontend/node_modules
 install-frontend-local:
@@ -111,6 +111,24 @@ clean-frontend-local:
 frontend-reformat-local:
 	cd $(FRONTEND) && \
 	npm run format
+
+## Verify lint, formatting and types without touching sources
+frontend-ci-local:
+	cd $(FRONTEND) && \
+	npm run lint && \
+	npm run format:check && \
+	npx tsc -b
+
+
+# --- CI / CD -----------------------------------------------------------------
+
+.PHONY: frontend-test-ci
+
+## Install from the lockfile, then run the vitest suite once (jsdom, no server)
+frontend-test-ci:
+	cd $(FRONTEND) && \
+	npm ci && \
+	npm run test
 
 
 # #############################################################################
@@ -143,14 +161,13 @@ build-dev:
 ## The `DEV_FRONTEND_URL` environment variable is passed to the api container
 ## This way, it can redirect to the frontend dev server.
 ## In this , the frontend will have the hot reloading capability, enabling real-time testing of changes,
-##  without rebuilding the image.
+## without rebuilding the image.
 start-dev: $(BUILD_DEV_STAMP)
 	DEV_FRONTEND_URL='http://localhost:5173' $(DC) -f $(COMPOSE_DEV_FILE) up -d && \
 	cd frontend && API_URL='http://localhost:8080' npm run dev
 
 stop-dev:
-	$(DC) -f $(COMPOSE_DEV_FILE) down && \
-	cd frontend && npm run stop
+	$(DC) -f $(COMPOSE_DEV_FILE) down
 
 ## Build if needed, then start api and ui detached
 start-prod: $(BUILD_DEV_STAMP)
