@@ -10,7 +10,7 @@ import { LoginRequest, LoginResponse } from "@/schemas/auth";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Input } from "../shadcn/input";
 import { Button } from "../shadcn/button";
-import GoogleIcon from "@/components/auth/GoogleIcon"
+import GoogleIcon from "@/components/auth/GoogleIcon";
 import APIClient from "@/lib/api/api-client";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
@@ -109,7 +109,7 @@ export default function Login() {
             type="button"
             variant="outline"
             className="cursor-pointer"
-            onClick={()=> window.location.replace(`${API_URL}/auth/google`)}
+            onClick={() => window.location.replace(`${API_URL}/auth/google`)}
           >
             <GoogleIcon /> Sign in with Google
           </Button>

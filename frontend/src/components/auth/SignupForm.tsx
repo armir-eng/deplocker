@@ -96,7 +96,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
 
   const onToggglePasswordVisibility = () => {
     setShowPassword((prevState) => !prevState);
-  }
+  };
 
   const onSubmit = async (data: InferType<typeof RegisterRequest>) => {
     const endpointURL = `${API_URL}/auth/register`;
@@ -329,7 +329,11 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                   <Button type="submit" className="cursor-pointer">
                     Create Account
                   </Button>
-                  <Button variant="outline" type="button" className="cursor-pointer">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    className="cursor-pointer"
+                  >
                     <GoogleIcon /> Sign up with Google
                   </Button>
                   <FieldDescription className="px-6 text-center">
