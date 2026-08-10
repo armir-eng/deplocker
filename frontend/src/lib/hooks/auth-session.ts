@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import APIClient from "@/lib/api/api-client";
 import { LoginResponse } from "@/schemas/auth";
-import { clearLocalStorage, getFromLocalStorage, setOnLocalStorage } from "@/lib/utils";
+import {
+  clearLocalStorage,
+  getFromLocalStorage,
+  setOnLocalStorage,
+} from "@/lib/utils";
 
 export default function useCheckAuthSession() {
   const [isSessionActive, setIsSessionActive] = useState<boolean | null>(null);

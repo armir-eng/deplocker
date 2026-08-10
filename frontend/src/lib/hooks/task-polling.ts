@@ -6,7 +6,9 @@ import { TaskStatusPollResponse } from "@/schemas/tasks";
 
 export default function useTaskStatusPolling(
   taskID: string | null,
-  setTaskID: (update: React.SetStateAction<string | null> | typeof RESET) => void,
+  setTaskID: (
+    update: React.SetStateAction<string | null> | typeof RESET,
+  ) => void,
   successMessage: string,
   failureMessage: string,
 ) {
