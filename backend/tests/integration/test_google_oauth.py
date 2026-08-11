@@ -4,6 +4,7 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.conf import settings
 from app.models import UserModel
@@ -38,7 +39,7 @@ async def test_google_login_redirects_to_google(client: AsyncClient) -> None:
 
 @pytest.mark.anyio
 async def test_google_callback_creates_new_user(
-    client: AsyncClient, test_db_session
+    client: AsyncClient, test_db_session: AsyncSession
 ) -> None:
     """A callback for an unknown Google account should provision a new active
     user, set a session cookie and redirect to the frontend."""
@@ -75,7 +76,7 @@ async def test_google_callback_creates_new_user(
 
 @pytest.mark.anyio
 async def test_google_callback_existing_user_does_not_duplicate(
-    client: AsyncClient, test_db_session
+    client: AsyncClient, test_db_session: AsyncSession
 ) -> None:
     """A callback for an already-registered email should log the user in
     without creating a second account."""

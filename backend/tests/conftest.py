@@ -3,14 +3,12 @@ from collections.abc import AsyncGenerator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core import settings
 from app.core.database import (
     DATABASE_URL,
     Base,
-    async_sessionmaker,
-    create_async_engine,
     get_db_session,
 )
 from app.main import app
