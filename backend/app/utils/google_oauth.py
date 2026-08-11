@@ -1,5 +1,6 @@
 # app/utils/google_oauth.py
 import logging
+from typing import Any
 
 import httpx
 from fastapi import HTTPException, status
@@ -10,12 +11,13 @@ logger = logging.getLogger(__name__)
 
 
 async def _google_request(
-    client: httpx.AsyncClient, method: str, url: str, **kw
-) -> dict:
+    client: httpx.AsyncClient, method: str, url: str, **kw: Any
+) -> dict[str, Any]:
     try:
         resp = await client.request(method, url, **kw)
         resp.raise_for_status()
-        return resp.json()
+        payload: dict[str, Any] = resp.json()
+        return payload
     except httpx.HTTPStatusError as exc:
         # Google reachable but rejected us (bad code, redirect mismatch, etc.)
         logger.warning(

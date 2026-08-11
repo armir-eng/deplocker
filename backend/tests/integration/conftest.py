@@ -23,7 +23,7 @@ AUTH_TEST_USER = {
 
 
 @pytest.fixture()
-async def authenticated_client(client: AsyncClient):
+async def authenticated_client(client: AsyncClient) -> AsyncClient:
     """Registers, confirms and logs in a test user, leaving `client` holding
     a valid `session_id` cookie for requests against protected routes."""
 

@@ -253,7 +253,7 @@ async def google_oauth2_login() -> RedirectResponse:
 @router.get("/google/callback")
 async def google_oauth2_callback(
     code: str, db_session: AsyncSession = Depends(get_db_session)
-) -> JSONResponse:
+) -> RedirectResponse:
 
     # Exchange the authorization code for an access token
     token_response = await fetch_google_access_token(code)

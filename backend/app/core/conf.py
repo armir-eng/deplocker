@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     GOOGLE_TOKEN_URL: str
     GOOGLE_USER_INFO_URL: str
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def FRONTEND_URL(self) -> str:
         """Root frontend URL for the active environment (single source of truth)."""
@@ -61,12 +61,12 @@ class Settings(BaseSettings):
             else self.DEV_FRONTEND_URL
         )
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def GOOGLE_REDIRECT_URI(self) -> str:
         BASE_URL = (
             self.PROD_FRONTEND_URL
-            if self.self.ENVIRONMENT == "production"
+            if self.ENVIRONMENT == "production"
             else self.DEV_FRONTEND_URL
         )
 
