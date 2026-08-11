@@ -33,7 +33,7 @@ alembic revision --autogenerate -m "description"
 
 ## Environment
 
-Settings are loaded from `/opt/deplocker-api/.env` (hardcoded in `app/core/conf.py`, not from the project directory). Copy `.env.example` and place it there. Required variables: Postgres connection, `TEST_DB`, `ENVIRONMENT` (`dev`|`production`), frontend URLs, `SECRET_KEY`/`ALGORITHM`/`ACCESS_TOKEN_EXPIRES_MINUTES`, RabbitMQ credentials, Redis credentials, and SMTP email credentials.
+Settings come from real environment variables; compose injects them by reading `/etc/deplocker/.env` on the host (`env_file:` in `docker-compose.yml`). `app/core/conf.py` also accepts a dotenv file at `$ENV_FILE`, defaulting to `.env` in the working directory — a fallback for running the app outside compose, since environment variables take precedence. Copy `.env.example` to `/etc/deplocker/.env`. Required variables: Postgres connection, `TEST_DB`, `ENVIRONMENT` (`dev`|`production`), frontend URLs, `SECRET_KEY`/`ALGORITHM`/`ACCESS_TOKEN_EXPIRES_MINUTES`, RabbitMQ credentials, Redis credentials, and SMTP email credentials.
 
 ## Architecture
 
