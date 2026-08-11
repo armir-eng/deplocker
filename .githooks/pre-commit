@@ -1,43 +1,17 @@
 #!/bin/bash
-#
-# Enable with: git config core.hooksPath .githooks
-# Bypass with: git commit --no-verify
 
-set -uo pipefail
+# Run linting for frontend and backend
+# This avoids dealing with linting phase errors in the CI pipeline
+if ! make lint-ci; then
+    cat >&2 <<'EOF'
 
-current_branch=$(git rev-parse --abbrev-ref HEAD)
-if [ "$current_branch" = "master" ]; then
-    echo "pre-commit: you are on master. Switch to a feature branch before committing."
+pre-commit: linting failed.
+
+  To address formatting issues, use the respective automatic reformatting tools:
+  -> For backend use: make backend-reformat
+  -> For frontend use: make frontend-reformat
+  
+  Carefully review the issues reported by mypy, ESLint, and tsc.
+EOF
     exit 1
 fi
-
-# -z survives paths with spaces; ACM skips deletions and renamed-from paths.
-py_files=()
-ts_files=()
-
-while IFS= read -r -d '' file; do
-    case "$file" in
-        *.py)       py_files+=("$file") ;;
-        *.ts|*.tsx) ts_files+=("$file") ;;
-    esac
-done < <(git diff --cached -z --name-only --diff-filter=ACM)
-
-# Linters read the working tree, not the index; partially staged files may differ.
-status=0
-
-if [ ${#py_files[@]} -gt 0 ]; then
-    if ! uv run --project backend ruff check "${py_files[@]}"; then
-        echo "pre-commit: ruff failed. Try 'make backend-reformat-local'."
-        status=1
-    fi
-fi
-
-if [ ${#ts_files[@]} -gt 0 ]; then
-    # ESLint 9 resolves flat config from cwd, not from the linted file.
-    if ! (cd frontend && npm exec --no -- eslint "${ts_files[@]#frontend/}"); then
-        echo "pre-commit: eslint failed."
-        status=1
-    fi
-fi
-
-exit $status
