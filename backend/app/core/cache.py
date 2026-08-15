@@ -32,6 +32,9 @@ class RedisManager:
     async def set(self, key: str, value: str) -> None:
         await self.redis.set(key, value)
 
+    async def delete(self, key: str) -> None:
+        await self.redis.delete(key)
+
     async def json_get(self, key: str, path: str = "$") -> Any:
         return await self.redis.json().get(key, path)  # type: ignore[misc]
 
