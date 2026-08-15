@@ -59,7 +59,7 @@ ignore = [
 "**/__init__.py" = ["F401"]
 "app/main.py" = ["F401"]
 "tests/conftest.py" = ["F401"]
-"app/models/*.py" = ["F821"]
+"**/app/models/*.py" = ["F821"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
