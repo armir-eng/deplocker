@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db_session
 from app.models.projects import ProjectModel
 from app.schemas.projects import ProjectCreate, ProjectResponse
+from app.utils.auth import get_current_session
 from app.utils.slug_generator import generate_slug
 
 router = APIRouter()
@@ -22,7 +23,9 @@ logger = logging.getLogger(__name__)
     response_model=ProjectResponse,
 )
 async def create_project(
-    payload: ProjectCreate, db_session: AsyncSession = Depends(get_db_session)
+    payload: ProjectCreate,
+    auth_session: dict = Depends(get_current_session),
+    db_session: AsyncSession = Depends(get_db_session),
 ) -> ProjectModel:
     existing_project_name = await db_session.scalar(
         select(ProjectModel.name).where(ProjectModel.name == payload.name)
@@ -53,6 +56,7 @@ async def create_project(
 )
 async def get_all_projects(
     name: str | None = None,
+    auth_session: dict = Depends(get_current_session),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> Sequence[ProjectModel]:
     query = select(ProjectModel)
@@ -64,7 +68,9 @@ async def get_all_projects(
 
 @router.get("/{id}", summary="Get project by ID", response_model=ProjectResponse)
 async def get_project_by_id(
-    id: uuid.UUID, db_session: AsyncSession = Depends(get_db_session)
+    id: uuid.UUID,
+    auth_session: dict = Depends(get_current_session),
+    db_session: AsyncSession = Depends(get_db_session),
 ) -> ProjectModel:
     result = await db_session.execute(select(ProjectModel).where(ProjectModel.id == id))
     project_record = result.scalar()
@@ -82,7 +88,10 @@ async def get_project_by_id(
     "/{id}", summary="Project detail update endpoint", response_model=ProjectResponse
 )
 async def update_project(
-    id: str, payload: ProjectCreate, db_session: AsyncSession = Depends(get_db_session)
+    id: str,
+    payload: ProjectCreate,
+    auth_session: dict = Depends(get_current_session),
+    db_session: AsyncSession = Depends(get_db_session),
 ) -> ProjectModel:
     result = await db_session.execute(select(ProjectModel).where(ProjectModel.id == id))
     project_record: ProjectModel | None = result.scalar()
@@ -103,7 +112,11 @@ async def update_project(
 
 
 @router.delete("/{id}", status_code=204, summary="Delete a project by ID")
-async def delete(id: str, db_session: AsyncSession = Depends(get_db_session)) -> None:
+async def delete(
+    id: str,
+    auth_session: dict = Depends(get_current_session),
+    db_session: AsyncSession = Depends(get_db_session),
+) -> None:
     result = await db_session.execute(select(ProjectModel).where(ProjectModel.id == id))
     project_record = result.scalar()
 
