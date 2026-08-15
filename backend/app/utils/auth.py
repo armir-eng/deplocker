@@ -4,7 +4,6 @@ from typing import Any, cast
 
 import jwt
 from fastapi import HTTPException, Request, status
-from fastapi.security import OAuth2PasswordBearer
 from pwdlib import PasswordHash
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +14,6 @@ from app.models.auth import UserModel
 from app.schemas.auth import SessionData
 
 password_hash = PasswordHash.recommended()
-oauth_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 logger = logging.getLogger(__name__)
 
