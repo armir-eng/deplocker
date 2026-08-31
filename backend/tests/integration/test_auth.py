@@ -7,7 +7,7 @@ from httpx import AsyncClient
 from pydantic import ValidationError
 
 from app.schemas.auth import SessionData, UserRegisterResponse, UserRole
-from app.utils.auth import generate_jwt
+from app.utils.auth.deplocker_auth import generate_jwt
 
 REGISTER_PAYLOAD = {
     "username": "armir",

@@ -11,7 +11,7 @@ from app.schemas.applications import (
     ApplicationResponse,
     ApplicationUpdate,
 )
-from app.utils.auth import get_current_session
+from app.utils.auth.deplocker_auth import get_current_session
 from app.utils.slug_generator import generate_slug
 
 router = APIRouter()

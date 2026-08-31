@@ -7,7 +7,11 @@ from pydantic import ValidationError
 
 from app.core.conf import settings
 from app.schemas.auth import UserRegister
-from app.utils.auth import generate_jwt, get_password_hash, verify_password
+from app.utils.auth.deplocker_auth import (
+    generate_jwt,
+    get_password_hash,
+    verify_password,
+)
 
 
 @pytest.fixture()

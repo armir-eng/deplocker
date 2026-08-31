@@ -11,7 +11,7 @@ from pydantic import ValidationError
 from app.core.cache import redis
 from app.schemas.applications import ApplicationResponse
 from app.schemas.projects import ProjectResponse
-from app.utils.auth import generate_jwt
+from app.utils.auth.deplocker_auth import generate_jwt
 
 AUTH_TEST_USER = {
     "username": "test_user",
