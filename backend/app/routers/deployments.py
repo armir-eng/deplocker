@@ -8,7 +8,7 @@ from app.core.database import get_db_session
 from app.models.deployments import DeploymentModel
 from app.schemas.deployments import DeploymentCreate, DeploymentResponse
 from app.services.deployment import DeploymentService
-from app.utils.auth import get_current_session
+from app.utils.auth.deplocker_auth import get_current_session
 
 router = APIRouter()
 
