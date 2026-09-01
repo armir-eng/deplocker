@@ -29,6 +29,11 @@ from app.utils.auth.deplocker_auth import (
     get_current_session,
     get_password_hash,
 )
+from app.utils.auth.github_oauth import (
+    fetch_github_access_token,
+    fetch_github_user_email,
+    fetch_github_user_info,
+)
 from app.utils.auth.google_oauth import (
     fetch_google_access_token,
     fetch_google_user_info,
@@ -389,6 +394,49 @@ async def google_oauth2_callback(
         email=email,
         full_name=user_info.get("name"),
         username_hint=email.split("@")[0],
+    )
+
+    return await _login_response(db_user)
+
+
+@router.get("/github/login")
+async def github_oauth2_login() -> RedirectResponse:
+    params = {
+        "client_id": settings.GITHUB_CLIENT_ID,
+        "redirect_uri": settings.GITHUB_REDIRECT_URI,
+        "scope": "read:user user:email",
+    }
+    return RedirectResponse(f"{settings.GITHUB_AUTH_URL}?{urlencode(params)}")
+
+
+@router.get("/github/callback")
+async def github_oauth2_callback(
+    code: str | None = None,
+    error: str | None = None,
+    db_session: AsyncSession = Depends(get_db_session),
+) -> RedirectResponse:
+    if error or not code:
+        logger.info("GitHub callback without a usable code: %s", error or "no code")
+        return _oauth_failure_redirect(error or "missing_code")
+
+    try:
+        token_response = await fetch_github_access_token(code)
+        access_token = token_response.get("access_token")
+
+        if not access_token:
+            logger.warning("GitHub token exchange returned no access token")
+            return _oauth_failure_redirect("github_token_exchange_failed")
+
+        user_info = await fetch_github_user_info(access_token)
+        email = await fetch_github_user_email(access_token)
+    except HTTPException:
+        return _oauth_failure_redirect("github_unavailable")
+
+    db_user = await _get_or_create_oauth_user(
+        db_session,
+        email=email,
+        full_name=user_info.get("name"),
+        username_hint=user_info.get("login") or email.split("@")[0],
     )
 
     return await _login_response(db_user)

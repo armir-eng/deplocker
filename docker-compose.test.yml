@@ -62,7 +62,15 @@ services:
       GOOGLE_CLIENT_SECRET: your-client-secret
       GOOGLE_AUTH_URL: https://accounts.google.com/o/oauth2/auth
       GOOGLE_TOKEN_URL: https://oauth2.googleapis.com/token
-      GOOGLE_USER_INFO_URL: https://www.googleapis.com/oauth2/v3/userinfo 
+      GOOGLE_USER_INFO_URL: https://www.googleapis.com/oauth2/v3/userinfo
+
+      # GitHub OAuth configuration parameters
+      GITHUB_CLIENT_ID: your-github-client-id
+      GITHUB_CLIENT_SECRET: your-github-client-secret
+      GITHUB_AUTH_URL: https://github.com/login/oauth/authorize
+      GITHUB_TOKEN_URL: https://github.com/login/oauth/access_token
+      GITHUB_USER_INFO_URL: https://api.github.com/user
+      GITHUB_USER_EMAILS_URL: https://api.github.com/user/emails
     depends_on:
       ci-postgres:
         condition: service_healthy
