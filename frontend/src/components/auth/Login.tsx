@@ -11,6 +11,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { Input } from "../shadcn/input";
 import { Button } from "../shadcn/button";
 import GoogleIcon from "@/components/auth/GoogleIcon";
+import GithubIcon from "@/components/auth/GithubIcon";
 import APIClient from "@/lib/api/api-client";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
@@ -115,8 +116,18 @@ export default function Login() {
           >
             <GoogleIcon /> Sign in with Google
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="cursor-pointer"
+            onClick={() =>
+              window.location.replace(`${API_URL}/auth/github/login`)
+            }
+          >
+            <GithubIcon /> Sign in with Github
+          </Button>
 
-          <div className="flex justify-center">
+          <div className="flex justify-center mb-12">
             <p>
               <>New to Deplocker? </>
               <a href="/register" className="text-blue-500 hover:underline">

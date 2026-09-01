@@ -58,6 +58,14 @@ class Settings(BaseSettings):
     GOOGLE_TOKEN_URL: str
     GOOGLE_USER_INFO_URL: str
 
+    # GitHub OAuth2 configuration parameters
+    GITHUB_CLIENT_ID: str
+    GITHUB_CLIENT_SECRET: str
+    GITHUB_AUTH_URL: str
+    GITHUB_TOKEN_URL: str
+    GITHUB_USER_INFO_URL: str
+    GITHUB_USER_EMAILS_URL: str
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def FRONTEND_URL(self) -> str:
@@ -82,6 +90,11 @@ class Settings(BaseSettings):
     @property
     def GOOGLE_REDIRECT_URI(self) -> str:
         return f"{self.PUBLIC_URL}/auth/google/callback"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def GITHUB_REDIRECT_URI(self) -> str:
+        return f"{self.PUBLIC_URL}/auth/github/callback"
 
     # Real environment variables win over the file; the file is a local-dev
     # convenience and is absent wherever the platform injects secrets directly.
