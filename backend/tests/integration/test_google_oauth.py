@@ -13,15 +13,20 @@ from app.schemas.auth import UserRole
 GOOGLE_USER = {
     "email": "oauth.user@gmail.com",
     "name": "OAuth User",
+    "email_verified": True,
 }
+
+
+def _error_code(location: str) -> str:
+    return parse_qs(urlparse(location).query)["error"][0]
 
 
 @pytest.mark.anyio
 async def test_google_login_redirects_to_google(client: AsyncClient) -> None:
-    """`GET /auth/google` should 307-redirect to Google's consent screen with
-    the expected OAuth query parameters."""
+    """`GET /auth/google/login` should 307-redirect to Google's consent screen
+    with the expected OAuth query parameters."""
 
-    response = await client.get("/auth/google", follow_redirects=False)
+    response = await client.get("/auth/google/login", follow_redirects=False)
 
     assert response.status_code == 307
 
@@ -112,8 +117,8 @@ async def test_google_callback_existing_user_does_not_duplicate(
 
 @pytest.mark.anyio
 async def test_google_callback_missing_access_token(client: AsyncClient) -> None:
-    """If Google's token exchange returns no access token, the callback should
-    fail with a 400."""
+    """A failed token exchange should send the browser back to the login page
+    rather than render an API error body."""
 
     with patch(
         "app.routers.auth.fetch_google_access_token",
@@ -125,15 +130,12 @@ async def test_google_callback_missing_access_token(client: AsyncClient) -> None
             follow_redirects=False,
         )
 
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Failed to obtain access token from Google."
+    assert response.status_code == 307
+    assert _error_code(response.headers["location"]) == "google_token_exchange_failed"
 
 
 @pytest.mark.anyio
 async def test_google_callback_missing_email(client: AsyncClient) -> None:
-    """If Google's user info contains no email, the callback should fail with a
-    400."""
-
     with (
         patch(
             "app.routers.auth.fetch_google_access_token",
@@ -150,13 +152,65 @@ async def test_google_callback_missing_email(client: AsyncClient) -> None:
             follow_redirects=False,
         )
 
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Failed to obtain user email from Google."
+    assert response.status_code == 307
+    assert _error_code(response.headers["location"]) == "google_email_missing"
 
 
 @pytest.mark.anyio
-async def test_google_callback_requires_code(client: AsyncClient) -> None:
-    """The `code` query parameter is required by the callback endpoint."""
+async def test_google_callback_rejects_unverified_email(
+    client: AsyncClient, test_db_session: AsyncSession
+) -> None:
+    """An unverified Google address must not be able to claim an account."""
 
+    unverified = {
+        "email": "unverified.user@gmail.com",
+        "name": "Unverified User",
+        "email_verified": False,
+    }
+
+    with (
+        patch(
+            "app.routers.auth.fetch_google_access_token",
+            new=AsyncMock(return_value={"access_token": "valid-access-token"}),
+        ),
+        patch(
+            "app.routers.auth.fetch_google_user_info",
+            new=AsyncMock(return_value=unverified),
+        ),
+    ):
+        response = await client.get(
+            "/auth/google/callback",
+            params={"code": "valid-auth-code"},
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 307
+    assert _error_code(response.headers["location"]) == "google_email_unverified"
+    assert "session_id" not in response.cookies
+
+    db_user = await test_db_session.scalar(
+        select(UserModel).where(UserModel.email == unverified["email"])
+    )
+    assert db_user is None
+
+
+@pytest.mark.anyio
+async def test_google_callback_consent_declined(client: AsyncClient) -> None:
+    """Cancelling on the consent screen returns an `error` and no `code`."""
+
+    response = await client.get(
+        "/auth/google/callback",
+        params={"error": "access_denied"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 307
+    assert _error_code(response.headers["location"]) == "access_denied"
+
+
+@pytest.mark.anyio
+async def test_google_callback_without_code(client: AsyncClient) -> None:
     response = await client.get("/auth/google/callback", follow_redirects=False)
-    assert response.status_code == 422
+
+    assert response.status_code == 307
+    assert _error_code(response.headers["location"]) == "missing_code"

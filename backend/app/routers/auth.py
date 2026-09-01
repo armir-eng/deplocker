@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+import re
 import uuid
 from datetime import timedelta
 from typing import TYPE_CHECKING, Annotated, Any
+from urllib.parse import urlencode
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -11,6 +13,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import EmailStr
 from sqlalchemy import exists, func, select
+from sqlalchemy.exc import IntegrityError
 
 from app.core import redis
 from app.core.conf import settings
@@ -243,70 +246,74 @@ async def validate_session(
     )
 
 
-@router.get("/google")
-async def google_oauth2_login() -> RedirectResponse:
-    params = {
-        "client_id": settings.GOOGLE_CLIENT_ID,
-        "redirect_uri": settings.GOOGLE_REDIRECT_URI,
-        "response_type": "code",
-        "scope": "openid email profile",
-        "access_type": "offline",
-        "prompt": "consent",
-    }
-    query_string = "&".join(f"{key}={value}" for key, value in params.items())
-    return RedirectResponse(f"{settings.GOOGLE_AUTH_URL}?{query_string}")
+def _oauth_failure_redirect(reason: str) -> RedirectResponse:
+    """OAuth callbacks are browser navigations, so failures go back to the login
+    page as a query parameter rather than rendering an API error body."""
+    # `reason` can carry a provider-supplied error, so keep it to an opaque slug.
+    code = re.sub(r"[^a-z_]", "", reason.lower())[:40] or "unknown_error"
+    query = urlencode({"error": code})
+    return RedirectResponse(f"{settings.FRONTEND_URL}/login?{query}")
 
 
-@router.get("/google/callback")
-async def google_oauth2_callback(
-    code: str, db_session: AsyncSession = Depends(get_db_session)
-) -> RedirectResponse:
+async def _unique_username(db_session: AsyncSession, base: str) -> str:
+    root = re.sub(r"[^a-zA-Z0-9_.-]", "", base).strip(".-_") or "user"
+    candidate = root
+    suffix = 1
+    while await db_session.scalar(
+        select(exists().where(UserModel.username == candidate))
+    ):
+        suffix += 1
+        candidate = f"{root}-{suffix}"
+    return candidate
 
-    # Exchange the authorization code for an access token
-    token_response = await fetch_google_access_token(code)
-    access_token = token_response.get("access_token")
 
-    if not access_token:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to obtain access token from Google.",
-        )
-
-    # Fetch user info from Google using the access token
-    user_info = await fetch_google_user_info(access_token)
-    email = user_info.get("email")
-    full_name = user_info.get("name")
-
-    if not email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to obtain user email from Google.",
-        )
-
-    # Check if the user already exists in the database
+async def _get_or_create_oauth_user(
+    db_session: AsyncSession,
+    *,
+    email: str,
+    full_name: str | None,
+    username_hint: str,
+) -> UserModel:
     db_user: UserModel | None = await db_session.scalar(
         select(UserModel).where(UserModel.email == email)
     )
+    if db_user:
+        return db_user
 
-    if not db_user:
-        # Create a new user if they don't exist
-        new_user = UserModel(
-            username=email.split("@")[0],
-            email=email,
-            full_name=full_name,
-            password=get_password_hash(uuid.uuid4().hex),
-            role=UserRole.ADMIN,
-            is_active=True,  # Automatically activate the account
-        )
+    username = await _unique_username(db_session, username_hint)
+    new_user = UserModel(
+        username=username,
+        email=email,
+        full_name=full_name or username,
+        password=get_password_hash(uuid.uuid4().hex),
+        role=UserRole.ADMIN,
+        is_active=True,  # The provider already verified the address
+    )
+
+    try:
         db_session.add(new_user)
         await db_session.flush()
         await _add_default_organization(db_session, new_user)
         await db_session.commit()
-        await db_session.refresh(new_user)
+    except IntegrityError:
+        # A concurrent callback for the same account won the race.
+        await db_session.rollback()
+        db_user = await db_session.scalar(
+            select(UserModel).where(UserModel.email == email)
+        )
+        if db_user is None:
+            logger.exception("Could not provision an account for %s", email)
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Could not create an account for this email address.",
+            ) from None
+        return db_user
 
-        db_user = new_user
+    await db_session.refresh(new_user)
+    return new_user
 
-    # Generate session data and JWT token for the logged-in user
+
+async def _login_response(db_user: UserModel) -> RedirectResponse:
     session_data = SessionData(
         user_id=db_user.id,
         username=db_user.username,
@@ -316,13 +323,11 @@ async def google_oauth2_callback(
     )
 
     session_id = str(uuid.uuid4())
-    serialized_session_data = session_data.model_dump_json()
     await redis.setex(
-        f"session:{session_id}", timedelta(days=1), serialized_session_data
+        f"session:{session_id}", timedelta(days=1), session_data.model_dump_json()
     )
 
     response = RedirectResponse(settings.FRONTEND_URL)
-
     response.set_cookie(
         "session_id",
         session_id,
@@ -331,5 +336,59 @@ async def google_oauth2_callback(
         samesite="strict",
         expires=int(timedelta(days=1).total_seconds()),
     )
-
     return response
+
+
+@router.get("/google/login")
+async def google_oauth2_login() -> RedirectResponse:
+    params = {
+        "client_id": settings.GOOGLE_CLIENT_ID,
+        "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "prompt": "consent",
+    }
+    return RedirectResponse(f"{settings.GOOGLE_AUTH_URL}?{urlencode(params)}")
+
+
+@router.get("/google/callback")
+async def google_oauth2_callback(
+    code: str | None = None,
+    error: str | None = None,
+    db_session: AsyncSession = Depends(get_db_session),
+) -> RedirectResponse:
+    if error or not code:
+        logger.info("Google callback without a usable code: %s", error or "no code")
+        return _oauth_failure_redirect(error or "missing_code")
+
+    try:
+        token_response = await fetch_google_access_token(code)
+        access_token = token_response.get("access_token")
+
+        if not access_token:
+            logger.warning("Google token exchange returned no access token")
+            return _oauth_failure_redirect("google_token_exchange_failed")
+
+        user_info = await fetch_google_user_info(access_token)
+    except HTTPException:
+        return _oauth_failure_redirect("google_unavailable")
+
+    email = user_info.get("email")
+    if not email:
+        return _oauth_failure_redirect("google_email_missing")
+
+    # An unverified address would let anyone claim an existing account by signing
+    # up to the provider with its email.
+    if not user_info.get("email_verified", False):
+        logger.warning("Rejected an unverified Google address")
+        return _oauth_failure_redirect("google_email_unverified")
+
+    db_user = await _get_or_create_oauth_user(
+        db_session,
+        email=email,
+        full_name=user_info.get("name"),
+        username_hint=email.split("@")[0],
+    )
+
+    return await _login_response(db_user)

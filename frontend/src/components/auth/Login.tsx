@@ -109,7 +109,9 @@ export default function Login() {
             type="button"
             variant="outline"
             className="cursor-pointer"
-            onClick={() => window.location.replace(`${API_URL}/auth/google`)}
+            onClick={() =>
+              window.location.replace(`${API_URL}/auth/google/login`)
+            }
           >
             <GoogleIcon /> Sign in with Google
           </Button>
