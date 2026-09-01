@@ -7,7 +7,8 @@ from pydantic import BaseModel, EmailStr
 
 
 class UserRole(Enum):
-    ADMIN = "admin"  # dedicated for platform-level operators (owners or administrators)
+    OWNER = "owner"  # dedicated for platform-level operators (owners or administrators)
+    ADMIN = "admin"  # dedicated for organization-level operators (admins or managers)
     USER = "user"  # the majority of users (who merely use the platform for their needs)
 
 

@@ -232,6 +232,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
+                          <SelectItem value="owner">Owner</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="user">User</SelectItem>
                         </SelectGroup>
