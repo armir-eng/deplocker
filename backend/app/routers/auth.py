@@ -53,6 +53,27 @@ async def check_username_availability(
     return {"available": not result.scalar()}
 
 
+async def _add_default_organization(db_session: AsyncSession, user: UserModel) -> None:
+    # `organizations.name` and `.slug` are both globally unique, so the default
+    # organization is named after its owner rather than a fixed string.
+    name = f"{user.username}'s organization"
+    organization = OrganizationModel(
+        owner_id=user.id,
+        name=name,
+        slug=generate_slug(name),
+    )
+    db_session.add(organization)
+    await db_session.flush()
+
+    db_session.add(
+        OrganizationMembersModel(
+            user_id=user.id,
+            organization_id=organization.id,
+            role=OrganizationRole.OWNER,
+        )
+    )
+
+
 @router.post("/register", summary="Register a new user in platform")
 async def register_new_user(
     payload: UserRegister, db_session: AsyncSession = Depends(get_db_session)
@@ -75,27 +96,10 @@ async def register_new_user(
         role=payload.role,
     )
     db_session.add(new_user)
+    await db_session.flush()
+    await _add_default_organization(db_session, new_user)
     await db_session.commit()
     await db_session.refresh(new_user)
-
-    # Create the default organization belonging to the user
-    new_organization = OrganizationModel(
-        owner_id=new_user.id,
-        name="My organization",
-        slug=generate_slug("My organization"),
-    )
-    db_session.add(new_organization)
-    await db_session.commit()
-    await db_session.refresh(new_organization)
-
-    # Create the associated record in the junction table
-    new_organization_member = OrganizationMembersModel(
-        user_id=new_user.id,
-        organization_id=new_organization.id,
-        role=OrganizationRole.OWNER,
-    )
-    db_session.add(new_organization_member)
-    await db_session.commit()
 
     # Send the confirmation email to the registered email address
     confirmation_email_task: Task = send_confirmation_email
@@ -295,27 +299,10 @@ async def google_oauth2_callback(
             is_active=True,  # Automatically activate the account
         )
         db_session.add(new_user)
+        await db_session.flush()
+        await _add_default_organization(db_session, new_user)
         await db_session.commit()
         await db_session.refresh(new_user)
-
-        # Create the default organization belonging to the user
-        new_organization = OrganizationModel(
-            owner_id=new_user.id,
-            name="My organization",
-            slug=generate_slug("My organization"),
-        )
-        db_session.add(new_organization)
-        await db_session.commit()
-        await db_session.refresh(new_organization)
-
-        # Create the associated record in the junction table
-        new_organization_member = OrganizationMembersModel(
-            user_id=new_user.id,
-            organization_id=new_organization.id,
-            role=OrganizationRole.OWNER,
-        )
-        db_session.add(new_organization_member)
-        await db_session.commit()
 
         db_user = new_user
 
