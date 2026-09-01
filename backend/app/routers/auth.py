@@ -20,13 +20,16 @@ from app.models.organizations import OrganizationMembersModel
 from app.schemas.auth import SessionData, UserRegister, UserRole
 from app.schemas.organizations import OrganizationRole
 from app.tasks.account_confirmation import send_confirmation_email
-from app.utils.auth import (
+from app.utils.auth.deplocker_auth import (
     authenticate_user,
     generate_jwt,
     get_current_session,
     get_password_hash,
 )
-from app.utils.google_oauth import fetch_google_access_token, fetch_google_user_info
+from app.utils.auth.google_oauth import (
+    fetch_google_access_token,
+    fetch_google_user_info,
+)
 from app.utils.slug_generator import generate_slug
 
 if TYPE_CHECKING:
