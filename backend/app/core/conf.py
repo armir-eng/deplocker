@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     DEV_FRONTEND_URL: str
     PROD_FRONTEND_URL: str
 
+    # Public URL
+    # This service's own externally reachable origin, resolved the same way as the
+    # frontend URL. OAuth2 providers redirect back to it, so it must match what is
+    # registered with each provider.
+    DEV_PUBLIC_URL: str = "http://localhost:8080"
+    PROD_PUBLIC_URL: str
+
     # JWT configuration parameters
     SECRET_KEY: str
     ALGORITHM: str
@@ -63,14 +70,18 @@ class Settings(BaseSettings):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def GOOGLE_REDIRECT_URI(self) -> str:
-        BASE_URL = (
-            self.PROD_FRONTEND_URL
+    def PUBLIC_URL(self) -> str:
+        """Own root URL for the active environment (single source of truth)."""
+        return (
+            self.PROD_PUBLIC_URL
             if self.ENVIRONMENT == "production"
-            else self.DEV_FRONTEND_URL
+            else self.DEV_PUBLIC_URL
         )
 
-        return f"{BASE_URL}/auth/google/callback"
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def GOOGLE_REDIRECT_URI(self) -> str:
+        return f"{self.PUBLIC_URL}/auth/google/callback"
 
     # Real environment variables win over the file; the file is a local-dev
     # convenience and is absent wherever the platform injects secrets directly.
