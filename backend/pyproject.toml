@@ -1,9 +1,11 @@
 [project]
 name = "backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "Self-hosted deployment platform for containerized applications."
 readme = "README.md"
 requires-python = ">=3.12"
+license = "Apache-2.0"
+authors = [{ name = "Armir Shehaj", email = "armir.shehaj@gmail.com" }]
 dependencies = [
     "fastapi[standard]==0.129.0",
     "pydantic-settings==2.12.0",
@@ -19,7 +21,7 @@ dependencies = [
     "slowapi==0.1.9",
     "python-json-logger==4.0.0",
     "redis==7.1.1",
-    "unidecode==1.4.0",
+    "anyascii==0.3.3",
 ]
 
 [dependency-groups]
@@ -87,7 +89,6 @@ module = [
     "celery.*",
     "pwdlib.*",
     "pythonjsonlogger.*",
-    "unidecode.*",
 ]
 ignore_missing_imports = true
 disable_error_code = ["import-untyped"]
