@@ -1,6 +1,6 @@
 import re
 
-from unidecode import unidecode
+from anyascii import anyascii
 
 
 def generate_slug(name: str) -> str:
@@ -14,7 +14,7 @@ def generate_slug(name: str) -> str:
         "My___Org" → "my-org"
     """
 
-    slug = unidecode(name)
+    slug = anyascii(name)
     slug = slug.lower()
 
     slug = re.sub(r"[\s_]", "-", slug)  # Replace spaces and underscores with hyphens

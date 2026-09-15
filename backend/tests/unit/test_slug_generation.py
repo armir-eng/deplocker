@@ -50,4 +50,4 @@ def test_symbols_only_raises() -> None:
 
 def test_unicode_only() -> None:
     slug_result = generate_slug("日本語")
-    assert slug_result == "ri-ben-yu"
+    assert slug_result == "ribenyu"
