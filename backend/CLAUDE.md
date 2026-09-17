@@ -45,7 +45,9 @@ Routers (`app/routers/`) receive requests and inject dependencies via FastAPI's 
 
 Auth is **session-cookie based at the API level** — JWT is only used for email account confirmation links. On login, a UUID `session_id` is stored as a `Set-Cookie` (`httponly`, `samesite=strict`) and the session data is written to Redis with a 1-day TTL. Every protected route depends on `get_current_session` (`app/utils/auth/shared.py`), which reads `session_id` from the cookie and looks up the session in Redis.
 
-Three ways in, all ending at `_login_response`: password, Google OAuth2, and GitHub OAuth2. Each has a router module under `app/routers/auth/` and a matching helper module under `app/utils/auth/`; the routers all register on the single `router` defined in `app/routers/auth/__init__.py`.
+Four ways in, all ending at `_login_response`: password, Google OAuth2, GitHub OAuth2, and passkeys (WebAuthn). Each has a router module under `app/routers/auth/` and a matching helper module under `app/utils/auth/`; the routers all register on the single `router` defined in `app/routers/auth/__init__.py`.
+
+Passkeys use discoverable credentials, so `POST /auth/passkeys/login` identifies the account from the credential id alone. Both ceremonies are two calls — options, then verification — and the challenge issued by the first is held in Redis for 5 minutes and deleted on use, keyed by user id when registering (there is a session) and by a `passkey_challenge` cookie when logging in (there is not). `WEBAUTHN_RP_ID` scopes a credential to a domain and defaults to the frontend host; the expected origin is `settings.FRONTEND_URL`.
 
 ### Data layer
 

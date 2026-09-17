@@ -20,7 +20,14 @@ import {
 import useAPIOnMount from "@/lib/hooks/api";
 import { getFromLocalStorage } from "@/lib/utils";
 import { UserOrgs } from "@/schemas/organizations";
-import { ChevronsUpDown, Folder, Power, Rocket } from "lucide-react";
+import { AddPasskeyForm } from "@/components/auth/AddPasskey";
+import {
+  ChevronsUpDown,
+  Fingerprint,
+  Folder,
+  Power,
+  Rocket,
+} from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { logoutUser } from "@/lib/utils/auth";
@@ -122,6 +129,16 @@ export default function AppSidebar() {
                 align="end"
                 className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
               >
+                <AddPasskeyForm>
+                  {/* Closing the menu on select would unmount the dialog before it opens. */}
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onSelect={(event) => event.preventDefault()}
+                  >
+                    <Fingerprint />
+                    <span>Add a passkey</span>
+                  </DropdownMenuItem>
+                </AddPasskeyForm>
                 <DropdownMenuItem
                   className="cursor-pointer"
                   onClick={() => logoutUser(navigate)}

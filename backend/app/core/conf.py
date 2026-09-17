@@ -1,5 +1,6 @@
 import os
 from typing import Literal
+from urllib.parse import urlparse
 
 from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -66,6 +67,12 @@ class Settings(BaseSettings):
     GITHUB_USER_INFO_URL: str
     GITHUB_USER_EMAILS_URL: str
 
+    # WebAuthn (passkey) configuration parameters
+    # The Relying Party ID scopes a passkey to a domain: it must be the frontend's
+    # host, or a registrable suffix of it when the SPA lives on a subdomain.
+    WEBAUTHN_RP_NAME: str = "Deplocker"
+    WEBAUTHN_RP_ID: str = ""
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def FRONTEND_URL(self) -> str:
@@ -88,6 +95,14 @@ class Settings(BaseSettings):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
+    def RP_ID(self) -> str:
+        """Relying Party ID, falling back to the frontend host when unset."""
+        return (
+            self.WEBAUTHN_RP_ID or urlparse(self.FRONTEND_URL).hostname or "localhost"
+        )
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def GOOGLE_REDIRECT_URI(self) -> str:
         return f"{self.PUBLIC_URL}/auth/google/callback"
 
@@ -96,8 +111,6 @@ class Settings(BaseSettings):
     def GITHUB_REDIRECT_URI(self) -> str:
         return f"{self.PUBLIC_URL}/auth/github/callback"
 
-    # Real environment variables win over the file; the file is a local-dev
-    # convenience and is absent wherever the platform injects secrets directly.
     model_config = SettingsConfigDict(
         env_file=os.getenv("ENV_FILE", ".env"), env_file_encoding="utf-8"
     )

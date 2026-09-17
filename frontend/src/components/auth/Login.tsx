@@ -6,17 +6,16 @@ import {
   FieldLabel,
 } from "../shadcn/field";
 import * as z from "zod";
-import { LoginRequest, LoginResponse } from "@/schemas/auth";
+import { LoginRequest } from "@/schemas/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "../shadcn/input";
 import { Button } from "../shadcn/button";
 import GoogleIcon from "@/components/auth/GoogleIcon";
 import GithubIcon from "@/components/auth/GithubIcon";
-import HttpRequest from "@/lib/api/http-request";
-import { toast } from "react-toastify";
+import { FingerprintIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { setOnLocalStorage } from "@/lib/utils";
 import useCheckAuthSession from "@/lib/hooks/auth-session";
+import { submitDeplockerLogin, submitPasskeyLogin } from "@/lib/utils/auth";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -33,26 +32,15 @@ export default function Login() {
     },
   });
 
-  const onSubmit = async (data: z.infer<typeof LoginRequest>) => {
-    const formData = new FormData();
-    formData.append("username", data.username);
-    formData.append("password", data.password);
-
-    const request = new HttpRequest(`${API_URL}/auth/login`, {
-      body: formData,
-    });
-    const [response, error] = await request.send(LoginResponse);
-
-    if (response) {
-      setOnLocalStorage("user_id", String(response.user_id));
-      setOnLocalStorage("email", response.email);
-      navigate("/dashboard/projects");
-    }
-
-    if (error) {
-      toast.error(error);
-    }
+  const onDeplockerAuthSubmit = async (data: z.infer<typeof LoginRequest>) =>
+    submitDeplockerLogin(data, navigate);
+  const onGoogleAuthSubmit = () => {
+    window.location.replace(`${API_URL}/auth/google/login`);
   };
+  const onGithubAuthSubmit = () => {
+    window.location.replace(`${API_URL}/auth/github/login`);
+  };
+  const onPasskeyAuthSubmit = async () => submitPasskeyLogin(navigate);
 
   return (
     <div className="flex flex-col h-screen items-center gap-12">
@@ -62,7 +50,7 @@ export default function Login() {
       </div>
       <form
         className="flex flex-col gap-8 w-full px-8 md:w-1/4 md:p-0"
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit(onDeplockerAuthSubmit)}
       >
         <FieldGroup>
           <Controller
@@ -110,9 +98,7 @@ export default function Login() {
             type="button"
             variant="outline"
             className="cursor-pointer"
-            onClick={() =>
-              window.location.replace(`${API_URL}/auth/google/login`)
-            }
+            onClick={onGoogleAuthSubmit}
           >
             <GoogleIcon /> Sign in with Google
           </Button>
@@ -120,11 +106,17 @@ export default function Login() {
             type="button"
             variant="outline"
             className="cursor-pointer"
-            onClick={() =>
-              window.location.replace(`${API_URL}/auth/github/login`)
-            }
+            onClick={onGithubAuthSubmit}
           >
             <GithubIcon /> Sign in with Github
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="cursor-pointer"
+            onClick={onPasskeyAuthSubmit}
+          >
+            <FingerprintIcon /> Sign in with Passkey
           </Button>
 
           <div className="flex justify-center mb-12">

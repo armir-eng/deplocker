@@ -46,3 +46,65 @@ export const LoginResponse = z.object({
 export const LogoutResponse = z.object({
   message: z.literal("User successfully logged out!"),
 });
+
+export const PasskeyResponse = z.object({
+  id: z.uuid(),
+  name: z.string().min(1),
+  created_at: z.string().min(1),
+  last_used_at: z.string().nullable(),
+});
+
+export const PasskeyRegisterRequest = z.object({
+  name: z.string().min(1, "Give the passkey a name you recognise.").max(255),
+});
+
+const PasskeyCredentialDescriptor = z.object({
+  id: z.string().min(1),
+  type: z.string().min(1),
+  transports: z.array(z.string().min(1)).optional(),
+});
+
+export const PasskeyRegistrationOptions = z.object({
+  rp: z.object({
+    name: z.string().min(1),
+    id: z.string().optional(),
+  }),
+  user: z.object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    displayName: z.string().min(1),
+  }),
+  challenge: z.string().min(1),
+  pubKeyCredParams: z.array(
+    z.object({
+      type: z.enum(["public-key"]),
+      alg: z.number(),
+    }),
+  ),
+  timeout: z.number().optional(),
+  excludeCredentials: z.array(PasskeyCredentialDescriptor).optional(),
+  authenticatorSelection: z
+    .object({
+      authenticatorAttachment: z
+        .enum(["cross-platform", "platform"])
+        .optional(),
+      requireResidentKey: z.boolean().optional(),
+      residentKey: z.enum(["discouraged", "preferred", "required"]).optional(),
+      userVerification: z
+        .enum(["discouraged", "preferred", "required"])
+        .optional(),
+    })
+    .optional(),
+  attestation: z.enum(["direct", "enterprise", "indirect", "none"]).optional(),
+  hints: z
+    .array(z.enum(["hybrid", "security-key", "client-device"]))
+    .optional(),
+});
+
+export const PasskeyAuthenticationOptions = z.object({
+  challenge: z.string().min(1),
+  timeout: z.number().optional(),
+  rpId: z.string().optional(),
+  allowCredentials: z.array(PasskeyCredentialDescriptor).optional(),
+  userVerification: z.enum(["discouraged", "preferred", "required"]).optional(),
+});

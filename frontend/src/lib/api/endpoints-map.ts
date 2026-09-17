@@ -15,6 +15,28 @@ export const parameterLessEndpoints: Record<string, RequestParams> = {
     method: "POST",
     authenticationRequired: true,
   },
+  [`${API_URL}/auth/passkeys/login/options`]: {
+    method: "POST",
+    authenticationRequired: true,
+  },
+  [`${API_URL}/auth/passkeys/login`]: {
+    method: "POST",
+    authenticationRequired: true,
+    headers: {
+      ...jsonPayloadHeader,
+    },
+  },
+  [`${API_URL}/auth/passkeys/register/options`]: {
+    method: "POST",
+    authenticationRequired: true,
+  },
+  [`${API_URL}/auth/passkeys/register`]: {
+    method: "POST",
+    authenticationRequired: true,
+    headers: {
+      ...jsonPayloadHeader,
+    },
+  },
   [`${API_URL}/health`]: {
     method: "GET",
   },

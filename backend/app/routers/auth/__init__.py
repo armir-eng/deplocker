@@ -7,6 +7,7 @@ from app.routers.auth import (  # noqa: E402
     deplocker_auth,
     github_oauth,
     google_oauth,
+    passkeys,
     shared,
 )
 
