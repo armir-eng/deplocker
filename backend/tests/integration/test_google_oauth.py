@@ -51,11 +51,11 @@ async def test_google_callback_creates_new_user(
 
     with (
         patch(
-            "app.routers.auth.fetch_google_access_token",
+            "app.routers.auth.google_oauth.fetch_google_access_token",
             new=AsyncMock(return_value={"access_token": "valid-access-token"}),
         ),
         patch(
-            "app.routers.auth.fetch_google_user_info",
+            "app.routers.auth.google_oauth.fetch_google_user_info",
             new=AsyncMock(return_value=GOOGLE_USER),
         ),
     ):
@@ -90,8 +90,12 @@ async def test_google_callback_existing_user_does_not_duplicate(
     mock_user_info = AsyncMock(return_value=GOOGLE_USER)
 
     with (
-        patch("app.routers.auth.fetch_google_access_token", new=mock_token),
-        patch("app.routers.auth.fetch_google_user_info", new=mock_user_info),
+        patch(
+            "app.routers.auth.google_oauth.fetch_google_access_token", new=mock_token
+        ),
+        patch(
+            "app.routers.auth.google_oauth.fetch_google_user_info", new=mock_user_info
+        ),
     ):
         first = await client.get(
             "/auth/google/callback",
@@ -121,7 +125,7 @@ async def test_google_callback_missing_access_token(client: AsyncClient) -> None
     rather than render an API error body."""
 
     with patch(
-        "app.routers.auth.fetch_google_access_token",
+        "app.routers.auth.google_oauth.fetch_google_access_token",
         new=AsyncMock(return_value={}),
     ):
         response = await client.get(
@@ -138,11 +142,11 @@ async def test_google_callback_missing_access_token(client: AsyncClient) -> None
 async def test_google_callback_missing_email(client: AsyncClient) -> None:
     with (
         patch(
-            "app.routers.auth.fetch_google_access_token",
+            "app.routers.auth.google_oauth.fetch_google_access_token",
             new=AsyncMock(return_value={"access_token": "valid-access-token"}),
         ),
         patch(
-            "app.routers.auth.fetch_google_user_info",
+            "app.routers.auth.google_oauth.fetch_google_user_info",
             new=AsyncMock(return_value={"name": "No Email"}),
         ),
     ):
@@ -170,11 +174,11 @@ async def test_google_callback_rejects_unverified_email(
 
     with (
         patch(
-            "app.routers.auth.fetch_google_access_token",
+            "app.routers.auth.google_oauth.fetch_google_access_token",
             new=AsyncMock(return_value={"access_token": "valid-access-token"}),
         ),
         patch(
-            "app.routers.auth.fetch_google_user_info",
+            "app.routers.auth.google_oauth.fetch_google_user_info",
             new=AsyncMock(return_value=unverified),
         ),
     ):

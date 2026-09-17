@@ -31,7 +31,8 @@ async def authenticated_client(client: AsyncClient) -> AsyncClient:
     fake_task_result.id = "550e8400-e29b-41d4-a716-446655440000"
 
     with patch(
-        "app.routers.auth.send_confirmation_email.delay", return_value=fake_task_result
+        "app.routers.auth.deplocker_auth.send_confirmation_email.delay",
+        return_value=fake_task_result,
     ):
         await client.post("/auth/register", json=AUTH_TEST_USER)
 

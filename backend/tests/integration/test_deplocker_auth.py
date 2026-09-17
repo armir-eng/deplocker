@@ -24,7 +24,7 @@ async def test_register(client: AsyncClient) -> None:
     fake_result.id = "550e8400-e29b-41d4-a716-446655440000"
 
     with patch(
-        "app.routers.auth.send_confirmation_email.delay",
+        "app.routers.auth.deplocker_auth.send_confirmation_email.delay",
         return_value=fake_result,
     ):
         response = await client.post("/auth/register", json=REGISTER_PAYLOAD)
@@ -50,7 +50,7 @@ async def test_register_duplicate_email(client: AsyncClient) -> None:
     fake_result.id = "550e8400-e29b-41d4-a716-446655440000"
 
     with patch(
-        "app.routers.auth.send_confirmation_email.delay",
+        "app.routers.auth.deplocker_auth.send_confirmation_email.delay",
         return_value=fake_result,
     ):
         await client.post("/auth/register", json=REGISTER_PAYLOAD)
@@ -65,7 +65,8 @@ async def test_login(client: AsyncClient) -> None:
     fake_result.id = "550e8400-e29b-41d4-a716-446655440000"
 
     with patch(
-        "app.routers.auth.send_confirmation_email.delay", return_value=fake_result
+        "app.routers.auth.deplocker_auth.send_confirmation_email.delay",
+        return_value=fake_result,
     ):
         await client.post("/auth/register", json=REGISTER_PAYLOAD)
 
@@ -103,7 +104,8 @@ async def test_session_check(client: AsyncClient) -> None:
     fake_result.id = "550e8400-e29b-41d4-a716-446655440000"
 
     with patch(
-        "app.routers.auth.send_confirmation_email.delay", return_value=fake_result
+        "app.routers.auth.deplocker_auth.send_confirmation_email.delay",
+        return_value=fake_result,
     ):
         await client.post("/auth/register", json=REGISTER_PAYLOAD)
 

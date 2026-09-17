@@ -43,7 +43,9 @@ Routers (`app/routers/`) receive requests and inject dependencies via FastAPI's 
 
 ### Authentication
 
-Auth is **session-cookie based at the API level** — JWT is only used for email account confirmation links. On login, a UUID `session_id` is stored as a `Set-Cookie` (`httponly`, `samesite=strict`) and the session data is written to Redis with a 1-day TTL. Every protected route depends on `get_current_session` (`app/utils/auth.py`), which reads `session_id` from the cookie and looks up the session in Redis.
+Auth is **session-cookie based at the API level** — JWT is only used for email account confirmation links. On login, a UUID `session_id` is stored as a `Set-Cookie` (`httponly`, `samesite=strict`) and the session data is written to Redis with a 1-day TTL. Every protected route depends on `get_current_session` (`app/utils/auth/shared.py`), which reads `session_id` from the cookie and looks up the session in Redis.
+
+Three ways in, all ending at `_login_response`: password, Google OAuth2, and GitHub OAuth2. Each has a router module under `app/routers/auth/` and a matching helper module under `app/utils/auth/`; the routers all register on the single `router` defined in `app/routers/auth/__init__.py`.
 
 ### Data layer
 

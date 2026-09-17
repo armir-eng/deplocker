@@ -1,17 +1,14 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import cast
 
 import jwt
-from fastapi import HTTPException, Request, status
 from pwdlib import PasswordHash
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.cache import redis
 from app.core.conf import settings
 from app.models.auth import UserModel
-from app.schemas.auth import SessionData
 
 password_hash = PasswordHash.recommended()
 
@@ -66,24 +63,3 @@ async def authenticate_user(
         return None
 
     return db_user
-
-
-async def get_current_session(request: Request) -> dict[str, Any]:
-    session_id = request.cookies.get("session_id")
-    logger.info(f"session_id: {session_id}")
-
-    if not session_id:
-        logger.info(f"session_id: {session_id}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="There is no active session!",
-        )
-
-    session_data = await redis.get(f"session:{session_id}")
-    if not session_data:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Session has expired, or is invalid!",
-        )
-
-    return SessionData.model_validate_json(session_data).model_dump(mode="json")

@@ -28,15 +28,15 @@ def _patch_github(
 ) -> tuple:
     return (
         patch(
-            "app.routers.auth.fetch_github_access_token",
+            "app.routers.auth.github_oauth.fetch_github_access_token",
             new=AsyncMock(return_value=token),
         ),
         patch(
-            "app.routers.auth.fetch_github_user_info",
+            "app.routers.auth.github_oauth.fetch_github_user_info",
             new=AsyncMock(return_value=user_info or GITHUB_USER),
         ),
         patch(
-            "app.routers.auth.fetch_github_user_email",
+            "app.routers.auth.github_oauth.fetch_github_user_email",
             new=AsyncMock(return_value=email),
         ),
     )
@@ -169,7 +169,7 @@ async def test_github_callback_provider_failure(client: AsyncClient) -> None:
 
     with (
         patch(
-            "app.routers.auth.fetch_github_access_token",
+            "app.routers.auth.github_oauth.fetch_github_access_token",
             new=AsyncMock(side_effect=HTTPException(status_code=502, detail="down")),
         ),
     ):
