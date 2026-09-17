@@ -136,3 +136,9 @@ request, require the `Build & Test` status check, block force pushes and
 deletions. The check name is the job's `name:` field, matched literally, and it
 appears in the picker only after the workflow has reported once — enabling it
 sooner blocks every pull request indefinitely.
+
+---
+
+## License
+
+[Apache License 2.0](LICENSE). Attribution requirements are in [NOTICE](NOTICE).
