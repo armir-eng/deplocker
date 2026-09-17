@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import HttpRequest from "../api/http-request";
-import { AnyObjectSchema, InferType } from "yup";
+import * as z from "zod";
 import { toast } from "react-toastify";
 import { APICallParams } from "../api/types";
 
@@ -8,14 +8,12 @@ import { APICallParams } from "../api/types";
 // It runs on very first component render, and makes sure the data are immediately fetched.
 // Then, the result is combined with a dedicated state varibale to store those data.
 // It efficiently uses the HttpRequest interface, exposing only the result of it, and reducing a considerable amount of boilerplate coming from directly instantiating and consuming it.
-export default function useAPIOnMount(
+export default function useAPIOnMount<S extends z.ZodObject>(
   endpointURL: string,
-  responseSchema: AnyObjectSchema,
+  responseSchema: S,
   apiCallParams?: APICallParams,
 ) {
-  const [response, setResponse] = useState<InferType<AnyObjectSchema> | null>(
-    null,
-  );
+  const [response, setResponse] = useState<z.infer<S> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,5 +37,5 @@ export default function useAPIOnMount(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return [response, error];
+  return [response, error] as const;
 }

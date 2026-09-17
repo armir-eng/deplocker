@@ -1,10 +1,7 @@
-import * as yup from "yup";
+import * as z from "zod";
 
-export const TaskStatusPollResponse = yup.object().shape({
-  task_id: yup.string().required(),
-  status: yup
-    .string()
-    .oneOf(["PENDING", "STARTED", "RETRY", "SUCCESS", "FAILURE"])
-    .required(),
-  result: yup.string().nullable(),
+export const TaskStatusPollResponse = z.object({
+  task_id: z.string().min(1),
+  status: z.enum(["PENDING", "STARTED", "RETRY", "SUCCESS", "FAILURE"]),
+  result: z.string().nullable().optional(),
 });

@@ -1,4 +1,4 @@
-import { InferType } from "yup";
+import * as z from "zod";
 import {
   Card,
   CardContent,
@@ -28,7 +28,7 @@ import {
   RegisterResponse,
   UsernameAvailabilty,
 } from "@/schemas/auth";
-import { yupResolver } from "@hookform/resolvers/yup";
+import { zodResolver } from "@hookform/resolvers/zod";
 import HttpRequest from "@/lib/api/http-request";
 import { toast } from "react-toastify";
 import { useAtom } from "jotai";
@@ -50,8 +50,8 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   );
   const [showPassword, setShowPassword] = useState(false);
 
-  const form = useForm<InferType<typeof RegisterRequest>>({
-    resolver: yupResolver(RegisterRequest),
+  const form = useForm<z.infer<typeof RegisterRequest>>({
+    resolver: zodResolver(RegisterRequest),
     defaultValues: {
       username: "",
       email: "",
@@ -98,7 +98,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
     setShowPassword((prevState) => !prevState);
   };
 
-  const onSubmit = async (data: InferType<typeof RegisterRequest>) => {
+  const onSubmit = async (data: z.infer<typeof RegisterRequest>) => {
     const endpointURL = `${API_URL}/auth/register`;
 
     // Field is not expected in the payload to the signup (register) endpoint.

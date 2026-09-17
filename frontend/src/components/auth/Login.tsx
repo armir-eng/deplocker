@@ -5,9 +5,9 @@ import {
   FieldGroup,
   FieldLabel,
 } from "../shadcn/field";
-import { InferType } from "yup";
+import * as z from "zod";
 import { LoginRequest, LoginResponse } from "@/schemas/auth";
-import { yupResolver } from "@hookform/resolvers/yup";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "../shadcn/input";
 import { Button } from "../shadcn/button";
 import GoogleIcon from "@/components/auth/GoogleIcon";
@@ -25,15 +25,15 @@ export default function Login() {
   if (isSessionActive) {
     navigate("/dashboard/projects");
   }
-  const form = useForm<InferType<typeof LoginRequest>>({
-    resolver: yupResolver(LoginRequest),
+  const form = useForm<z.infer<typeof LoginRequest>>({
+    resolver: zodResolver(LoginRequest),
     defaultValues: {
       username: "",
       password: "",
     },
   });
 
-  const onSubmit = async (data: InferType<typeof LoginRequest>) => {
+  const onSubmit = async (data: z.infer<typeof LoginRequest>) => {
     const formData = new FormData();
     formData.append("username", data.username);
     formData.append("password", data.password);
