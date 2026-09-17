@@ -45,6 +45,10 @@ export const parameteredEndpoints: Record<string, RequestParams> = {
   [`${API_URL}/auth/account/confirm/retry?email=:email`]: {
     method: "POST",
   },
+  [`${API_URL}/auth/logout`]: {
+    method: "POST",
+    authenticationRequired: true,
+  },
   [`${API_URL}/orgs/:userID`]: {
     method: "GET",
     authenticationRequired: true,

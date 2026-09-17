@@ -20,9 +20,10 @@ import {
 import useAPIOnMount from "@/lib/hooks/api";
 import { getFromLocalStorage } from "@/lib/utils";
 import { UserOrgs } from "@/schemas/organizations";
-import { ChevronsUpDown, Folder, Rocket } from "lucide-react";
+import { ChevronsUpDown, Folder, Power, Rocket } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { logoutUser } from "@/lib/utils/auth";
 
 export default function AppSidebar() {
   const { isMobile, setOpenMobile } = useSidebar();
@@ -99,17 +100,39 @@ export default function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <div className="flex gap-1">
-          <span className="relative flex shrink-0 overflow-hidden h-8 w-8 rounded-lg">
-            <span className="flex h-full w-full items-center justify-center bg-[rgb(66,121,53)] rounded-lg text-white">
-              {email?.[0].toUpperCase()}
-            </span>
-          </span>
-          <div className="flex flex-col">
-            <span className="truncate font-semibold">Account</span>
-            <span className="truncate text-sm">{email}</span>
-          </div>
-        </div>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild className="cursor-pointer">
+                <SidebarMenuButton size="lg" tooltip={email ?? "Account"}>
+                  <span className="relative flex shrink-0 overflow-hidden h-8 w-8 rounded-lg">
+                    <span className="flex h-full w-full items-center justify-center bg-[rgb(66,121,53)] rounded-lg text-white">
+                      {email?.[0].toUpperCase()}
+                    </span>
+                  </span>
+                  <div className="grid flex-1 text-left leading-tight">
+                    <span className="truncate font-semibold">Account</span>
+                    <span className="truncate text-sm">{email}</span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side="right"
+                align="end"
+                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+              >
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => logoutUser(navigate)}
+                >
+                  <Power color="red" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

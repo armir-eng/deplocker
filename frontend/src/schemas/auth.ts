@@ -42,3 +42,7 @@ export const LoginResponse = z.object({
   role: z.enum(["admin", "user"]),
   created_at: z.string().min(1),
 });
+
+export const LogoutResponse = z.object({
+  message: z.literal("User successfully logged out!"),
+});
