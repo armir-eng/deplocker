@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import APIClient from "@/lib/api/api-client";
+import HttpRequest from "@/lib/api/http-request";
 import { LoginResponse } from "@/schemas/auth";
 import {
   clearLocalStorage,
@@ -15,9 +15,9 @@ export default function useCheckAuthSession() {
   useEffect(() => {
     const checkSession = async () => {
       const endpointURL = `${API_URL}/auth/session/check`;
-      const apiClient = new APIClient(endpointURL);
+      const request = new HttpRequest(endpointURL);
 
-      const [response, error] = await apiClient.call(LoginResponse);
+      const [response, error] = await request.send(LoginResponse);
 
       if (response) {
         if (!getFromLocalStorage("user_id")) {

@@ -6,7 +6,7 @@ import { AnyObjectSchema, InferType, ValidationError } from "yup";
 
 export type APICallResult<T> = [T | null, string | null];
 
-export default class APIClient {
+export default class HttpRequest {
   endpointURL: string;
   apiCallParams?: APICallParams;
 
@@ -15,7 +15,7 @@ export default class APIClient {
     this.apiCallParams = apiCallParams;
   }
 
-  async call<S extends AnyObjectSchema>(
+  async send<S extends AnyObjectSchema>(
     schema?: S,
   ): Promise<APICallResult<InferType<S>>> {
     let endpointConfig: RequestParams;

@@ -12,7 +12,7 @@ import { Input } from "../shadcn/input";
 import { Button } from "../shadcn/button";
 import GoogleIcon from "@/components/auth/GoogleIcon";
 import GithubIcon from "@/components/auth/GithubIcon";
-import APIClient from "@/lib/api/api-client";
+import HttpRequest from "@/lib/api/http-request";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { setOnLocalStorage } from "@/lib/utils";
@@ -38,10 +38,10 @@ export default function Login() {
     formData.append("username", data.username);
     formData.append("password", data.password);
 
-    const apiClient = new APIClient(`${API_URL}/auth/login`, {
+    const request = new HttpRequest(`${API_URL}/auth/login`, {
       body: formData,
     });
-    const [response, error] = await apiClient.call(LoginResponse);
+    const [response, error] = await request.send(LoginResponse);
 
     if (response) {
       setOnLocalStorage("user_id", String(response.user_id));

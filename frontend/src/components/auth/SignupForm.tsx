@@ -29,7 +29,7 @@ import {
   UsernameAvailabilty,
 } from "@/schemas/auth";
 import { yupResolver } from "@hookform/resolvers/yup";
-import APIClient from "@/lib/api/api-client";
+import HttpRequest from "@/lib/api/http-request";
 import { toast } from "react-toastify";
 import { useAtom } from "jotai";
 import { emailTaskIDAtom } from "@/store/auth.atoms";
@@ -71,10 +71,10 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
     setUsernameAvailable(null); // Remove the availability message before the check request
     if (!username || username.length < 3) return;
     const timer = setTimeout(async () => {
-      const apiClient = new APIClient(
+      const request = new HttpRequest(
         `${API_URL}/auth/check-username?username=${username}`,
       );
-      const [result, error] = await apiClient.call(UsernameAvailabilty);
+      const [result, error] = await request.send(UsernameAvailabilty);
       if (result) {
         setUsernameAvailable(result.available);
       }
@@ -106,11 +106,11 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
     // This way, we delete it from the object.
     delete data["confirm_password"];
 
-    const apiClient = new APIClient(endpointURL, {
+    const request = new HttpRequest(endpointURL, {
       body: data,
     });
 
-    const [response, error] = await apiClient.call(RegisterResponse);
+    const [response, error] = await request.send(RegisterResponse);
     if (response) {
       toast.info(response.message);
       setEmailTaskID(response.email_task_id);

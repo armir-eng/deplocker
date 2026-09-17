@@ -42,14 +42,14 @@ export function ProjectCreateForm() {
       console.log(r);
       setCreatingProject(false);
     });
-    // const apiClient = new APIClient(`${API_URL}/projects/create`, {
+    // const request = new HttpRequest(`${API_URL}/projects/create`, {
     //     body: {
     //         name: data.name,
     //         descriptiom: data.description
     //     }
     // })
 
-    // const [response, error] = await apiClient.call(ProjectCreateResponse)
+    // const [response, error] = await request.send(ProjectCreateResponse)
 
     // if (response) {
     //     toast.success(`Project '${response.name}' was successfully created!`)
