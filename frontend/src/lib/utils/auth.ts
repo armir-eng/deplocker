@@ -71,7 +71,7 @@ export async function submitPasskeyLogin(
   }
 
   request = new HttpRequest(`${API_URL}/auth/passkeys/login`, {
-    body: { authenticationCredential },
+    body: { credential: authenticationCredential },
   });
   const [response, error] = await request.send(LoginResponse);
 
