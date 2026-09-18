@@ -40,7 +40,7 @@ import {
 } from "../../constants/auth";
 import { useEffect, useState } from "react";
 import { Button } from "../shadcn/button";
-import GoogleIcon from "./GoogleIcon";
+import GoogleIcon from "@/lib/icons/GoogleIcon";
 import { Eye, EyeOff } from "lucide-react";
 
 export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
