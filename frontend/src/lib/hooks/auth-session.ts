@@ -6,7 +6,7 @@ import {
   clearLocalStorage,
   getFromLocalStorage,
   setOnLocalStorage,
-} from "@/lib/utils";
+} from "@/lib/utils/local-storage";
 
 export default function useCheckAuthSession() {
   const [isSessionActive, setIsSessionActive] = useState<boolean | null>(null);

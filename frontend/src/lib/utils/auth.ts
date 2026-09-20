@@ -7,7 +7,7 @@ import {
   PasskeyRegistrationOptions,
   PasskeyResponse,
 } from "@/schemas/auth";
-import { setOnLocalStorage } from "../utils";
+import { setOnLocalStorage } from "./local-storage";
 import { toast } from "react-toastify";
 import { NavigateFunction } from "react-router-dom";
 import HttpRequest from "@/lib/api/http-request";

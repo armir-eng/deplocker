@@ -18,7 +18,7 @@ import {
   useSidebar,
 } from "@/components/shadcn/sidebar";
 import useAPIOnMount from "@/lib/hooks/api";
-import { getFromLocalStorage } from "@/lib/utils";
+import { getFromLocalStorage } from "@/lib/utils/local-storage";
 import { UserOrgs } from "@/schemas/organizations";
 import { AddPasskeyForm } from "@/components/auth/AddPasskey";
 import {
