@@ -7,46 +7,41 @@ const jsonPayloadHeader = {
 export const parameterLessEndpoints: Record<string, RequestParams> = {
   [`${API_URL}/auth/register`]: {
     method: "POST",
+    public: true,
     headers: {
       ...jsonPayloadHeader,
     },
   },
   [`${API_URL}/auth/login`]: {
     method: "POST",
-    authenticationRequired: true,
   },
   [`${API_URL}/auth/passkeys/login/options`]: {
     method: "POST",
-    authenticationRequired: true,
   },
   [`${API_URL}/auth/passkeys/login`]: {
     method: "POST",
-    authenticationRequired: true,
     headers: {
       ...jsonPayloadHeader,
     },
   },
   [`${API_URL}/auth/passkeys/register/options`]: {
     method: "POST",
-    authenticationRequired: true,
   },
   [`${API_URL}/auth/passkeys/register`]: {
     method: "POST",
-    authenticationRequired: true,
     headers: {
       ...jsonPayloadHeader,
     },
   },
   [`${API_URL}/health`]: {
     method: "GET",
+    public: true,
   },
   [`${API_URL}/auth/session/check`]: {
     method: "GET",
-    authenticationRequired: true,
   },
   [`${API_URL}/projects/create`]: {
     method: "GET",
-    authenticationRequired: true,
     headers: {
       ...jsonPayloadHeader,
     },
@@ -56,24 +51,24 @@ export const parameterLessEndpoints: Record<string, RequestParams> = {
 export const parameteredEndpoints: Record<string, RequestParams> = {
   [`${API_URL}/tasks/:taskID`]: {
     method: "GET",
-    authenticationRequired: true,
   },
   [`${API_URL}/auth/check-username?username=:username`]: {
     method: "GET",
+    public: true,
   },
   [`${API_URL}/auth/account/confirm?email=:email&token=:token`]: {
     method: "POST",
+    public: true,
   },
   [`${API_URL}/auth/account/confirm/retry?email=:email`]: {
     method: "POST",
+    public: true,
   },
   [`${API_URL}/auth/logout`]: {
     method: "POST",
-    authenticationRequired: true,
   },
   [`${API_URL}/orgs/:userID`]: {
     method: "GET",
-    authenticationRequired: true,
   },
 };
 

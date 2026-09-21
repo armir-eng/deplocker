@@ -29,13 +29,11 @@ export default class HttpRequest {
 
     const init: RequestInit = {
       method: endpointConfig.method,
+      credentials: endpointConfig.public ? "same-origin" : "include",
     };
 
     if (endpointConfig.headers) {
       init.headers = endpointConfig.headers;
-    }
-    if (endpointConfig.authenticationRequired) {
-      init.credentials = "include";
     }
 
     const requestPayload = this.apiCallParams?.body;
