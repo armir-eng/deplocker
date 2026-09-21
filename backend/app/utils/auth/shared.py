@@ -65,7 +65,7 @@ async def _login_response[R: (JSONResponse, RedirectResponse)](
     )
 
     session_id = str(uuid.uuid4())
-    await redis.setex(
+    await redis.client.setex(
         f"session:{session_id}", timedelta(days=1), session_data.model_dump_json()
     )
 
@@ -89,7 +89,7 @@ async def get_current_session(request: Request) -> dict[str, Any]:
             detail="There is no active session!",
         )
 
-    session_data = await redis.get(f"session:{session_id}")
+    session_data = await redis.client.get(f"session:{session_id}")
     if not session_data:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

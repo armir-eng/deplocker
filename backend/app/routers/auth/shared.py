@@ -27,7 +27,7 @@ async def logout_user(request: Request) -> JSONResponse:
             detail="No active session found! Logout failed.",
         )
 
-    await redis.delete(f"session:{session_id}")
+    await redis.client.delete(f"session:{session_id}")
     response = JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": "User successfully logged out!"},

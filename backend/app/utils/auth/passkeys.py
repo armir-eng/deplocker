@@ -54,16 +54,16 @@ def _expired_challenge() -> HTTPException:
 
 
 async def _store_challenge(key: str, challenge: bytes) -> None:
-    await redis.setex(key, CHALLENGE_TTL, bytes_to_base64url(challenge))
+    await redis.client.setex(key, CHALLENGE_TTL, bytes_to_base64url(challenge))
 
 
 async def _pop_challenge(key: str) -> bytes:
     """Reads a challenge and burns it, so an assertion can only be played once."""
-    stored: bytes | None = await redis.get(key)
+    stored: bytes | None = await redis.client.get(key)
     if stored is None:
         raise _expired_challenge()
 
-    await redis.delete(key)
+    await redis.client.delete(key)
     return base64url_to_bytes(stored.decode())
 
 

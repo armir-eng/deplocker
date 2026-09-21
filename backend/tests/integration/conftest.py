@@ -164,8 +164,8 @@ async def application_create_test(
 @pytest.fixture(autouse=True)
 async def mock_redis() -> AsyncGenerator[None, None]:
     fake = fakeredis.aioredis.FakeRedis()
-    original = redis.redis
-    redis.redis = fake
+    original = redis.client
+    redis.client = fake
     yield
     await fake.aclose()
-    redis.redis = original
+    redis.client = original

@@ -105,7 +105,7 @@ async def confirm_new_account(
         )
 
     except jwt.ExpiredSignatureError as exc:
-        await redis.set("expired_activation:email", email)
+        await redis.client.set("expired_activation:email", email)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Activation token has expired. Please request a new confirmation email.",
