@@ -133,7 +133,6 @@ export async function logoutUser(navigate: NavigateFunction): Promise<void> {
   const [response, error] = await request.send(LogoutResponse);
 
   if (response) {
-    toast.success(response.message);
     navigate("/login");
   }
 
