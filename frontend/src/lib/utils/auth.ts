@@ -66,6 +66,13 @@ export async function submitPasskeyLogin(
       optionsJSON: options,
     });
   } catch (error) {
+    // WebAuthn deliberately reports cancel, timeout, failed verification and "no passkey here" all as NotAllowedError.
+    if (error instanceof Error && error.name === "NotAllowedError") {
+      toast.info(
+        "Passkey sign-in didn't complete.\nIf you do not have a passkey registered, sign in another way, then add one from the sidebar.",
+        { style: { whiteSpace: "pre-line" } },
+      );
+    }
     reportCeremonyError(error);
     return;
   }
