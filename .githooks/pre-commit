@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Run linting for frontend and backend
+# Lint the components touched by the staged files, as CI does.
 # This avoids dealing with linting phase errors in the CI pipeline
 if ! make lint-ci; then
     cat >&2 <<'EOF'

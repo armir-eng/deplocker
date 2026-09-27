@@ -256,8 +256,12 @@ stop-prod:
 
 .PHONY: lint-ci build-ci publish-ci deploy-cd
 
-## Lint both frontend and backend
-lint-ci: frontend-lint-ci backend-lint-ci
+## Lint the components touched by the staged files
+lint-ci:
+	@files=$$(git diff --cached --name-only); targets=; \
+	echo "$$files" | grep -q '^frontend/' && targets="$$targets frontend-lint-ci"; \
+	echo "$$files" | grep -q '^backend/' && targets="$$targets backend-lint-ci"; \
+	[ -z "$$targets" ] || $(MAKE) $$targets
 
 ## Build both shippable images
 build-ci: backend-build-ci frontend-build-ci
