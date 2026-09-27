@@ -51,6 +51,27 @@ the opt-in. They are a fast feedback loop, not a control — and, as noted under
 
 ---
 
+## Local HTTPS
+
+Passkeys need a secure origin on a real domain; `localhost` cannot run the
+WebAuthn ceremony. `make start-dev-https` serves the dev stack at
+<https://lvh.me:5173> (`lvh.me` resolves to `127.0.0.1`) with a locally
+trusted certificate from [mkcert](https://github.com/FiloSottile/mkcert).
+
+Once per machine, after installing mkcert:
+
+```sh
+mkcert -install                  # create a local CA and trust it in system + browsers
+cd frontend && mkcert lvh.me     # writes lvh.me.pem and lvh.me-key.pem
+```
+
+The `.pem` files are gitignored; [vite.config.ts](frontend/vite.config.ts)
+reads them by those names. Restart the browser after `mkcert -install` so it
+picks up the new CA. On Linux, Firefox and Chrome trust it only if `certutil`
+(`libnss3-tools`) is installed before running `mkcert -install`.
+
+---
+
 ## CI/CD
 
 [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml), triggered on every
