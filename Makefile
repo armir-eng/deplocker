@@ -205,7 +205,7 @@ frontend-publish-ci:
 
 # --- Development environment -------------------------------------------------
 
-.PHONY: build-dev clean-dev start-dev stop-dev restart-dev
+.PHONY: build-dev clean-dev start-dev start-dev-https stop-dev restart-dev
 
 ## Sentinel: images are rebuilt only when a Dockerfile or the stack definition
 ## changes. The `frontend` profile is named so that `ui` is built alongside api.
@@ -231,6 +231,12 @@ build-dev:
 start-dev: $(BUILD_DEV_STAMP)
 	DEV_FRONTEND_URL='http://localhost:5173' $(DC) -f $(COMPOSE_DEV_FILE) up -d && \
 	cd frontend && API_URL='http://localhost:8080' npm run dev
+
+## Same stack, served over TLS on the lvh.me test domain (mkcert certificates in
+## ./frontend), so the browser runs a real passkey ceremony against RP ID lvh.me.
+start-dev-https: $(BUILD_DEV_STAMP)
+	DEV_FRONTEND_URL='https://lvh.me:5173' $(DC) -f $(COMPOSE_DEV_FILE) up -d && \
+	cd frontend && DEV_HTTPS=1 API_URL='https://lvh.me:5173/api' npm run dev
 
 stop-dev:
 	$(DC) -f $(COMPOSE_DEV_FILE) down
