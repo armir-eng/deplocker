@@ -1,0 +1,41 @@
+{
+  "name": "deplocker",
+  "image": "mcr.microsoft.com/devcontainers/python:3.14",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "lts" },
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": { "moby": false },
+    "ghcr.io/va-h/devcontainers-features/uv:1": {},
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
+  },
+
+  // Compose runs on the host daemon, so its relative bind mounts resolve against
+  // host paths: the workspace must sit at the same path inside the container.
+  "workspaceMount": "source=${localWorkspaceFolder},target=${localWorkspaceFolder},type=bind",
+  "workspaceFolder": "${localWorkspaceFolder}",
+
+  "mounts": [
+    // Read client-side by compose for env_file.
+    "source=/etc/deplocker,target=/etc/deplocker,type=bind,readonly",
+    // Host venv links to a host-only interpreter; keep the container's apart.
+    "source=deplocker-venv,target=${localWorkspaceFolder}/backend/.venv,type=volume"
+  ],
+
+  // Shares loopback with the host: Vite's proxy reaches the api on 127.0.0.1:8080
+  // and the host browser reaches Vite on lvh.me:5173. Linux hosts only.
+  "runArgs": ["--network=host"],
+
+  "postCreateCommand": "sudo chown vscode backend/.venv && make backend-install-local frontend-install-ci",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-vscode.makefile-tools",
+        "anthropic.claude-code"
+      ]
+    }
+  }
+}
