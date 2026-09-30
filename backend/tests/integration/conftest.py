@@ -7,8 +7,11 @@ import fakeredis
 import pytest
 from httpx import AsyncClient, Response
 from pydantic import ValidationError
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import redis
+from app.models import OrganizationMembersModel, UserModel
 from app.schemas.applications import ApplicationResponse
 from app.schemas.projects import ProjectResponse
 from app.utils.auth.deplocker_auth import generate_jwt
@@ -56,11 +59,29 @@ async def authenticated_client(client: AsyncClient) -> AsyncClient:
 
 
 @pytest.fixture()
+async def default_organization_id(
+    authenticated_client: AsyncClient, test_db_session: AsyncSession
+) -> uuid.UUID:
+    """The test user's default organization, created on registration."""
+    organization_id = await test_db_session.scalar(
+        select(OrganizationMembersModel.organization_id)
+        .join(UserModel, UserModel.id == OrganizationMembersModel.user_id)
+        .where(UserModel.username == AUTH_TEST_USER["username"])
+    )
+    assert organization_id is not None
+    return organization_id
+
+
+@pytest.fixture()
 async def project_factory(
-    authenticated_client: AsyncClient,
+    authenticated_client: AsyncClient, default_organization_id: uuid.UUID
 ) -> Callable[..., Awaitable[Response]]:
     async def create(name: str, description: str) -> Response:
-        payload = {"name": name, "description": description}
+        payload = {
+            "name": name,
+            "description": description,
+            "organization_id": str(default_organization_id),
+        }
         response: Response = await authenticated_client.post("/projects", json=payload)
         assert response.status_code == 201
 
@@ -69,6 +90,7 @@ async def project_factory(
             schema_object = ProjectResponse(**response_data)
             assert schema_object.name == name
             assert schema_object.description == description
+            assert schema_object.organization_id == default_organization_id
             assert type(schema_object.id) is uuid.UUID
 
         except ValidationError as e:

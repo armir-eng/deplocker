@@ -20,9 +20,13 @@ class ProjectBase(BaseModel):
     status: ProjectStatus = ProjectStatus.ACTIVE
 
 
-class ProjectCreate(BaseModel):
+class ProjectFields(BaseModel):
     name: str
     description: str
+
+
+class ProjectCreate(ProjectFields):
+    organization_id: uuid.UUID
 
 
 class ProjectUpdate(BaseModel):

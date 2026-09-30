@@ -32,6 +32,9 @@ class OrganizationModel(Base):
     members: Mapped[list["UserModel"]] = relationship(  # type: ignore[name-defined]
         secondary="organization_members", back_populates="organizations", viewonly=True
     )
+    projects: Mapped[list["ProjectModel"]] = relationship(  # type: ignore[name-defined]
+        back_populates="organization", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"Organization({self.id}, {self.name})"

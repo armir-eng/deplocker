@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, String, Text, func
+from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -15,6 +15,10 @@ class ProjectModel(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
     name: Mapped[str] = mapped_column(
         String(255), nullable=False, unique=True, index=True
     )
@@ -32,4 +36,9 @@ class ProjectModel(Base):
         DateTime, nullable=True, default=func.now(), onupdate=func.now()
     )
 
-    applications: Mapped["ApplicationModel"] = relationship(back_populates="project")  # type: ignore[name-defined]
+    organization: Mapped["OrganizationModel"] = relationship(  # type: ignore[name-defined]
+        back_populates="projects"
+    )
+    applications: Mapped[list["ApplicationModel"]] = relationship(  # type: ignore[name-defined]
+        back_populates="project"
+    )

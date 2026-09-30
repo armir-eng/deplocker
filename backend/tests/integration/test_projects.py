@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Callable
 from datetime import datetime
 
@@ -83,3 +84,17 @@ async def test_delete_project(
 
     delete_response = await client.delete(f"/projects/{created_id}")
     assert delete_response.status_code == 204
+
+
+@pytest.mark.anyio
+async def test_create_project_in_foreign_organization(
+    authenticated_client: AsyncClient,
+) -> None:
+    payload = {
+        "name": "Deplocker",
+        "description": "Easily deploy and scale your dockerized projects.",
+        "organization_id": str(uuid.uuid4()),
+    }
+
+    response = await authenticated_client.post("/projects", json=payload)
+    assert response.status_code == 404

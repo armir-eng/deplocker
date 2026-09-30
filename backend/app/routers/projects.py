@@ -3,12 +3,13 @@ import uuid
 from collections.abc import Sequence
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
+from app.models.organizations import OrganizationMembersModel
 from app.models.projects import ProjectModel
-from app.schemas.projects import ProjectCreate, ProjectResponse
+from app.schemas.projects import ProjectCreate, ProjectFields, ProjectResponse
 from app.utils.auth.shared import get_current_session
 from app.utils.slug_generator import generate_slug
 
@@ -27,6 +28,22 @@ async def create_project(
     auth_session: dict = Depends(get_current_session),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> ProjectModel:
+    # Answers 404 for an organization the caller is not in, so the response does
+    # not reveal whether it exists.
+    is_member = await db_session.scalar(
+        select(
+            exists().where(
+                OrganizationMembersModel.user_id == auth_session["user_id"],
+                OrganizationMembersModel.organization_id == payload.organization_id,
+            )
+        )
+    )
+    if not is_member:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Organization '{payload.organization_id}' was not found!",
+        )
+
     existing_project_name = await db_session.scalar(
         select(ProjectModel.name).where(ProjectModel.name == payload.name)
     )
@@ -38,6 +55,7 @@ async def create_project(
         )
 
     new_project = ProjectModel(
+        organization_id=payload.organization_id,
         name=payload.name,
         slug=generate_slug(payload.name),
         description=payload.description,
@@ -89,7 +107,7 @@ async def get_project_by_id(
 )
 async def update_project(
     id: str,
-    payload: ProjectCreate,
+    payload: ProjectFields,
     auth_session: dict = Depends(get_current_session),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> ProjectModel:
