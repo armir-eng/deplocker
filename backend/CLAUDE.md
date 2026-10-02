@@ -41,6 +41,12 @@ Settings come from real environment variables; compose injects them by reading `
 
 Routers (`app/routers/`) receive requests and inject dependencies via FastAPI's `Depends`. Simple CRUD is handled directly in routers. Complex domain logic is delegated to service classes (`app/services/`), which accept an `AsyncSession` and encapsulate the DB operations. All database access is async via SQLAlchemy + asyncpg.
 
+### Helpers
+
+Every helper function lives under `app/utils/` — never in a router, model or schema module, even when only one route calls it. Routers keep only path operation functions.
+
+`app/utils/` is split into subdirectories named after the context a helper serves, so the tree reads as a map of the project: `app/utils/auth/` holds authentication helpers, one module per concern (`passkeys.py`, `google_oauth.py`, …) with `shared.py` for what several of them use. Put a new helper in the subdirectory of its context, creating the subdirectory (with an `__init__.py`) when none fits; do not add modules at the top level of `app/utils/`. A helper used across contexts goes in a subdirectory named for what it does (e.g. text formatting), not in a catch-all like `common/` or `misc/`.
+
 ### Authentication
 
 Auth is **session-cookie based at the API level** — JWT is only used for email account confirmation links. On login, a UUID `session_id` is stored as a `Set-Cookie` (`httponly`, `samesite=strict`) and the session data is written to Redis with a 1-day TTL. Every protected route depends on `get_current_session` (`app/utils/auth/shared.py`), which reads `session_id` from the cookie and looks up the session in Redis.
@@ -53,7 +59,7 @@ Passkeys use discoverable credentials, so `POST /auth/passkeys/login` identifies
 
 - `Base` (`app/core/database.py`) is the SQLAlchemy declarative base; all models inherit from it and get a `to_dict()` helper.
 - Schemas (`app/schemas/`) are Pydantic models used for request validation and response serialization — they are separate from SQLAlchemy models.
-- Slugs are auto-generated via `generate_slug()` (`app/utils/slug_generator.py`) when creating Projects, Applications, and Organizations.
+- Slugs are auto-generated via `generate_slug()` (`app/utils/text/slug_generator.py`) when creating Projects, Applications, and Organizations.
 
 ### Domain model
 

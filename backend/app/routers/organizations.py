@@ -13,7 +13,7 @@ from app.schemas.organizations import (
     OrganizationRole,
 )
 from app.utils.auth.shared import get_current_session
-from app.utils.slug_generator import generate_slug
+from app.utils.text.slug_generator import generate_slug
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

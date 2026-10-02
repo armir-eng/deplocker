@@ -17,7 +17,7 @@ from app.models import OrganizationMembersModel, OrganizationModel, UserModel
 from app.schemas.auth import SessionData, UserRole
 from app.schemas.organizations import OrganizationRole
 from app.utils.auth.deplocker_auth import get_password_hash
-from app.utils.slug_generator import generate_slug
+from app.utils.text.slug_generator import generate_slug
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession

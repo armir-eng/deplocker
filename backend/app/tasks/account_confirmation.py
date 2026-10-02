@@ -5,7 +5,7 @@ from email.message import EmailMessage
 
 from app.core import settings
 from app.tasks.celery_app import celery_app
-from app.utils.templates import get_template
+from app.utils.email.templates import get_template
 
 logger = logging.getLogger(__name__)
 
