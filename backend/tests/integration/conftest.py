@@ -11,7 +11,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import redis
-from app.models import OrganizationMembersModel, UserModel
+from app.models import (
+    OrganizationMembersModel,
+    OrganizationModel,
+    ProjectModel,
+    UserModel,
+)
 from app.schemas.applications import ApplicationResponse
 from app.schemas.projects import ProjectResponse
 from app.utils.auth.deplocker_auth import generate_jwt
@@ -111,6 +116,39 @@ async def project_create_test(
     )
 
     return response
+
+
+@pytest.fixture()
+async def foreign_project(test_db_session: AsyncSession) -> ProjectModel:
+    """A project in an organization the test user is not a member of."""
+    owner = UserModel(
+        username="foreign_user",
+        email="foreign.user@deplocker.com",
+        full_name="Foreign User",
+        password="not-a-real-hash",
+    )
+    test_db_session.add(owner)
+    await test_db_session.flush()
+
+    organization = OrganizationModel(
+        owner_id=owner.id, name="Foreign organization", slug="foreign-organization"
+    )
+    test_db_session.add(organization)
+    await test_db_session.flush()
+
+    test_db_session.add(
+        OrganizationMembersModel(user_id=owner.id, organization_id=organization.id)
+    )
+    project = ProjectModel(
+        organization_id=organization.id,
+        name="Foreign project",
+        slug="foreign-project",
+        description="Belongs to another organization.",
+    )
+    test_db_session.add(project)
+    await test_db_session.flush()
+
+    return project
 
 
 # Used for multiple records creation for listing requests.

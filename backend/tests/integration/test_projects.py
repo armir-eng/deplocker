@@ -8,6 +8,7 @@ from httpx import AsyncClient, Response
 from pydantic import ValidationError
 
 from app.core import redis
+from app.models import ProjectModel
 from app.schemas.projects import ProjectResponse, ProjectStatus
 
 fake = Faker()
@@ -23,14 +24,20 @@ PROJECT_ROUTES = [
 
 @pytest.mark.anyio
 async def test_list_projects(
-    authenticated_client: AsyncClient, project_factory: Callable
+    authenticated_client: AsyncClient,
+    project_factory: Callable,
+    default_organization_id: uuid.UUID,
+    foreign_project: ProjectModel,
 ) -> None:
     for _ in range(10):
         await project_factory(name=fake.company(), description=fake.sentence())
 
-    response = await authenticated_client.get("/projects")
+    response = await authenticated_client.get(
+        "/projects", params={"org_id": str(default_organization_id)}
+    )
     assert response.status_code == 200
 
+    # `foreign_project` exists too, but in another organization.
     response_data = response.json()
     assert type(response_data) is list
     assert len(response_data) == 10
@@ -63,12 +70,17 @@ async def test_get_project_by_id(
 
 @pytest.mark.anyio
 async def test_get_project_by_name(
-    authenticated_client: AsyncClient, project_create_test: Response
+    authenticated_client: AsyncClient,
+    project_create_test: Response,
+    default_organization_id: uuid.UUID,
 ) -> None:
     new_project_data = project_create_test.json()
     new_project_name = new_project_data["name"]
 
-    response = await authenticated_client.get(f"/projects?name={new_project_name}")
+    response = await authenticated_client.get(
+        "/projects",
+        params={"org_id": str(default_organization_id), "name": new_project_name},
+    )
     assert response.status_code == 200
     response_data = response.json()
     assert len(response_data) == 1
@@ -108,6 +120,51 @@ async def test_create_project_in_foreign_organization(
     }
 
     response = await authenticated_client.post("/projects", json=payload)
+    assert response.status_code == 404
+
+
+@pytest.mark.anyio
+async def test_list_projects_of_foreign_organization(
+    authenticated_client: AsyncClient, foreign_project: ProjectModel
+) -> None:
+    response = await authenticated_client.get(
+        "/projects", params={"org_id": str(foreign_project.organization_id)}
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.anyio
+async def test_get_project_by_name_of_foreign_organization(
+    authenticated_client: AsyncClient,
+    default_organization_id: uuid.UUID,
+    foreign_project: ProjectModel,
+) -> None:
+    response = await authenticated_client.get(
+        "/projects",
+        params={"org_id": str(default_organization_id), "name": foreign_project.name},
+    )
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("method", "body"),
+    [
+        ("GET", None),
+        ("PATCH", {"name": "Hijacked", "description": "Hijacked"}),
+        ("DELETE", None),
+    ],
+)
+async def test_foreign_project_is_not_found(
+    authenticated_client: AsyncClient,
+    foreign_project: ProjectModel,
+    method: str,
+    body: dict[str, str] | None,
+) -> None:
+    response = await authenticated_client.request(
+        method, f"/projects/{foreign_project.id}", json=body
+    )
     assert response.status_code == 404
 
 
