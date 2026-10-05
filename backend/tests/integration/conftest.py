@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import redis
 from app.models import (
+    ApplicationModel,
+    DeploymentModel,
     OrganizationMembersModel,
     OrganizationModel,
     ProjectModel,
@@ -149,6 +151,38 @@ async def foreign_project(test_db_session: AsyncSession) -> ProjectModel:
     await test_db_session.flush()
 
     return project
+
+
+@pytest.fixture()
+async def foreign_application(
+    test_db_session: AsyncSession, foreign_project: ProjectModel
+) -> ApplicationModel:
+    """An application under `foreign_project`."""
+    application = ApplicationModel(
+        project_id=foreign_project.id,
+        name="Foreign application",
+        slug="foreign-application",
+        description="Belongs to another organization.",
+        git_url="https://github.com/foreign-user/foreign-application",
+        env_vars={},
+        domain="foreign-application.deplocker.com",
+    )
+    test_db_session.add(application)
+    await test_db_session.flush()
+
+    return application
+
+
+@pytest.fixture()
+async def foreign_deployment(
+    test_db_session: AsyncSession, foreign_application: ApplicationModel
+) -> DeploymentModel:
+    """A deployment of `foreign_application`."""
+    deployment = DeploymentModel(application_id=foreign_application.id)
+    test_db_session.add(deployment)
+    await test_db_session.flush()
+
+    return deployment
 
 
 # Used for multiple records creation for listing requests.

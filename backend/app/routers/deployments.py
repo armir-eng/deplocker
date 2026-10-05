@@ -26,7 +26,9 @@ async def create_deployment(
 ) -> DeploymentModel:
     service = DeploymentService(db_session)
 
-    new_deployment = await service.create_deployment(payload.application_id)
+    new_deployment = await service.create_deployment(
+        auth_session["user_id"], payload.application_id
+    )
     return new_deployment
 
 
@@ -39,7 +41,7 @@ async def get_deployment_id(
     db_session: AsyncSession = Depends(get_db_session),
 ) -> DeploymentModel:
     service = DeploymentService(db_session)
-    deployment = await service.get_deployment(id)
+    deployment = await service.get_deployment(auth_session["user_id"], id)
 
     return deployment
 
@@ -50,7 +52,7 @@ async def list_deployments(
     db_session: AsyncSession = Depends(get_db_session),
 ) -> Sequence[DeploymentModel]:
     service = DeploymentService(db_session)
-    all_deployments = await service.get_all_deployments()
+    all_deployments = await service.get_all_deployments(auth_session["user_id"])
     return all_deployments
 
 
@@ -61,4 +63,4 @@ async def delete_deployment(
     db_session: AsyncSession = Depends(get_db_session),
 ) -> None:
     service = DeploymentService(db_session)
-    await service.delete_deployment(id)
+    await service.delete_deployment(auth_session["user_id"], id)

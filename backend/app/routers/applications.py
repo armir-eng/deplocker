@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Sequence
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -12,6 +13,11 @@ from app.schemas.applications import (
     ApplicationUpdate,
 )
 from app.utils.auth.shared import get_current_session
+from app.utils.organizations.membership import (
+    get_member_application,
+    get_member_project,
+    select_member_applications,
+)
 from app.utils.text.slug_generator import generate_slug
 
 router = APIRouter()
@@ -28,6 +34,8 @@ async def create_application(
     auth_session: dict = Depends(get_current_session),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> ApplicationModel:
+    await get_member_project(db_session, auth_session["user_id"], payload.project_id)
+
     existing_application_name = await db_session.scalar(
         select(ApplicationModel.name).where(ApplicationModel.name == payload.name)
     )
@@ -68,7 +76,7 @@ async def list_applications(
     auth_session: dict = Depends(get_current_session),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> Sequence[ApplicationModel]:
-    query = select(ApplicationModel)
+    query = select_member_applications(auth_session["user_id"])
 
     if name is not None:
         query = query.where(ApplicationModel.name == name)
@@ -83,22 +91,11 @@ async def list_applications(
     response_model=ApplicationResponse,
 )
 async def get_application_by_id(
-    id: str,
+    id: uuid.UUID,
     auth_session: dict = Depends(get_current_session),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> ApplicationModel:
-    result = await db_session.execute(
-        select(ApplicationModel).where(ApplicationModel.id == id)
-    )
-    app_record = result.scalar()
-
-    if app_record is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Application '{id}' was not found!",
-        )
-
-    return app_record
+    return await get_member_application(db_session, auth_session["user_id"], id)
 
 
 @router.patch(
@@ -107,22 +104,12 @@ async def get_application_by_id(
     response_model=ApplicationResponse,
 )
 async def update_application(
-    id: str,
+    id: uuid.UUID,
     payload: ApplicationUpdate,
     auth_session: dict = Depends(get_current_session),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> ApplicationModel:
-    result = await db_session.execute(
-        select(ApplicationModel).where(ApplicationModel.id == id)
-    )
-
-    app_record = result.scalar_one_or_none()
-
-    if app_record is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Application '{id}' was not found!",
-        )
+    app_record = await get_member_application(db_session, auth_session["user_id"], id)
 
     update_data = payload.model_dump(exclude_unset=True)
 
@@ -141,21 +128,11 @@ async def update_application(
     summary="Project deletion endpoint",
 )
 async def delete_application(
-    id: str,
+    id: uuid.UUID,
     auth_session: dict = Depends(get_current_session),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> None:
-    result = await db_session.execute(
-        select(ApplicationModel).where(ApplicationModel.id == id)
-    )
-
-    app_record = result.scalar_one_or_none()
-
-    if app_record is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Application '{id}' was not found!",
-        )
+    app_record = await get_member_application(db_session, auth_session["user_id"], id)
 
     await db_session.delete(app_record)
     await db_session.commit()

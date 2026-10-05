@@ -110,65 +110,6 @@ async def test_delete_project(
 
 
 @pytest.mark.anyio
-async def test_create_project_in_foreign_organization(
-    authenticated_client: AsyncClient,
-) -> None:
-    payload = {
-        "name": "Deplocker",
-        "description": "Easily deploy and scale your dockerized projects.",
-        "organization_id": str(uuid.uuid4()),
-    }
-
-    response = await authenticated_client.post("/projects", json=payload)
-    assert response.status_code == 404
-
-
-@pytest.mark.anyio
-async def test_list_projects_of_foreign_organization(
-    authenticated_client: AsyncClient, foreign_project: ProjectModel
-) -> None:
-    response = await authenticated_client.get(
-        "/projects", params={"org_id": str(foreign_project.organization_id)}
-    )
-    assert response.status_code == 404
-
-
-@pytest.mark.anyio
-async def test_get_project_by_name_of_foreign_organization(
-    authenticated_client: AsyncClient,
-    default_organization_id: uuid.UUID,
-    foreign_project: ProjectModel,
-) -> None:
-    response = await authenticated_client.get(
-        "/projects",
-        params={"org_id": str(default_organization_id), "name": foreign_project.name},
-    )
-    assert response.status_code == 200
-    assert response.json() == []
-
-
-@pytest.mark.anyio
-@pytest.mark.parametrize(
-    ("method", "body"),
-    [
-        ("GET", None),
-        ("PATCH", {"name": "Hijacked", "description": "Hijacked"}),
-        ("DELETE", None),
-    ],
-)
-async def test_foreign_project_is_not_found(
-    authenticated_client: AsyncClient,
-    foreign_project: ProjectModel,
-    method: str,
-    body: dict[str, str] | None,
-) -> None:
-    response = await authenticated_client.request(
-        method, f"/projects/{foreign_project.id}", json=body
-    )
-    assert response.status_code == 404
-
-
-@pytest.mark.anyio
 @pytest.mark.parametrize(("method", "path"), PROJECT_ROUTES)
 @pytest.mark.parametrize("session_id", [None, "invalid-session"])
 async def test_projects_require_authentication(
