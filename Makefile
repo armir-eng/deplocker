@@ -101,13 +101,19 @@ backend-stop-local:
 
 # --- CI / CD -----------------------------------------------------------------
 
-.PHONY: backend-lint-ci backend-test-ci backend-clean-ci backend-build-ci backend-publish-ci
+.PHONY: backend-lint-ci backend-migrations-ci backend-test-ci backend-clean-ci backend-build-ci backend-publish-ci
 
 ## Verify formatting and static types without touching sources
 backend-lint-ci:
 	cd $(BACKEND) && \
 	uv run ruff format --check . && \
 	uv run mypy .
+
+## Build the schema from migrations on the empty CI database, then fail if the
+## models describe anything the migrations do not
+backend-migrations-ci:
+	$(DC) -f $(COMPOSE_TEST_FILE) run --rm --build api \
+		sh -c "uv run alembic upgrade head && uv run alembic check"
 
 ## Run the test suite in containers; exit with the api container's status
 backend-test-ci:

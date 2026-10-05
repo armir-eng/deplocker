@@ -70,6 +70,10 @@ jobs:
         if: steps.changes.outputs.backend
         run: make backend-lint-ci
 
+      - name: Check backend migrations
+        if: steps.changes.outputs.backend
+        run: make backend-migrations-ci
+
       - name: Run backend tests
         if: steps.changes.outputs.backend
         run: make backend-test-ci
