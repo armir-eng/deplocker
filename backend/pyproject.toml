@@ -32,6 +32,7 @@ dev = [
     "pytest==9.0.2",
     "fakeredis==2.34.1",
     "mypy>=2.1.0",
+    "paracelsus>=0.15.0",
 ]
 
 [tool.ruff]
