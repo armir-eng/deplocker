@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core import settings
 from app.core.cache import redis
+from app.core.migrations import ensure_schema_is_current
 from app.logging_conf.setup import setup_logging
 from app.middlewares.logging_handler import LoggingMiddleware
 from app.routers import (
@@ -25,12 +26,11 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    from .core.database import Base, async_engine
+    from .core.database import async_engine
 
     logger.info("Application starting up...")
 
-    async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    await ensure_schema_is_current(async_engine)
 
     yield
 
