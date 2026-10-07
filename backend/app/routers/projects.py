@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
 from app.models.projects import ProjectModel
+from app.schemas.organizations import OrganizationRole
 from app.schemas.projects import ProjectCreate, ProjectFields, ProjectResponse
 from app.utils.auth.shared import get_current_session
 from app.utils.naming.conflicts import commit_unless_name_taken
@@ -15,6 +16,7 @@ from app.utils.organizations.membership import (
     ensure_organization_member,
     get_member_project,
 )
+from app.utils.organizations.roles import require_role
 from app.utils.text.slug_generator import generate_slug
 
 router = APIRouter()
@@ -33,7 +35,10 @@ async def create_project(
     db_session: AsyncSession = Depends(get_db_session),
 ) -> ProjectModel:
     await ensure_organization_member(
-        db_session, auth_session["user_id"], payload.organization_id
+        db_session,
+        auth_session["user_id"],
+        payload.organization_id,
+        OrganizationRole.ADMIN,
     )
 
     new_project = ProjectModel(
@@ -85,13 +90,12 @@ async def get_project_by_id(
     "/{id}", summary="Project detail update endpoint", response_model=ProjectResponse
 )
 async def update_project(
-    id: uuid.UUID,
     payload: ProjectFields,
-    auth_session: dict = Depends(get_current_session),
+    project_record: ProjectModel = Depends(
+        require_role(get_member_project, OrganizationRole.ADMIN)
+    ),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> ProjectModel:
-    project_record = await get_member_project(db_session, auth_session["user_id"], id)
-
     project_record.name = payload.name
     project_record.slug = generate_slug(payload.name)
     project_record.description = payload.description
@@ -106,11 +110,10 @@ async def update_project(
 
 @router.delete("/{id}", status_code=204, summary="Delete a project by ID")
 async def delete(
-    id: uuid.UUID,
-    auth_session: dict = Depends(get_current_session),
+    project_record: ProjectModel = Depends(
+        require_role(get_member_project, OrganizationRole.OWNER)
+    ),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> None:
-    project_record = await get_member_project(db_session, auth_session["user_id"], id)
-
     await db_session.delete(project_record)
     await db_session.commit()

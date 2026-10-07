@@ -11,6 +11,7 @@ from app.schemas.applications import (
     ApplicationResponse,
     ApplicationUpdate,
 )
+from app.schemas.organizations import OrganizationRole
 from app.utils.auth.shared import get_current_session
 from app.utils.naming.conflicts import commit_unless_name_taken
 from app.utils.organizations.membership import (
@@ -18,6 +19,7 @@ from app.utils.organizations.membership import (
     get_member_project,
     select_member_applications,
 )
+from app.utils.organizations.roles import require_role
 from app.utils.text.slug_generator import generate_slug
 
 router = APIRouter()
@@ -34,7 +36,9 @@ async def create_application(
     auth_session: dict = Depends(get_current_session),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> ApplicationModel:
-    await get_member_project(db_session, auth_session["user_id"], payload.project_id)
+    await get_member_project(
+        db_session, auth_session["user_id"], payload.project_id, OrganizationRole.ADMIN
+    )
 
     new_application = ApplicationModel(
         name=payload.name,
@@ -96,13 +100,12 @@ async def get_application_by_id(
     response_model=ApplicationResponse,
 )
 async def update_application(
-    id: uuid.UUID,
     payload: ApplicationUpdate,
-    auth_session: dict = Depends(get_current_session),
+    app_record: ApplicationModel = Depends(
+        require_role(get_member_application, OrganizationRole.ADMIN)
+    ),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> ApplicationModel:
-    app_record = await get_member_application(db_session, auth_session["user_id"], id)
-
     update_data = payload.model_dump(exclude_unset=True)
 
     for field, value in update_data.items():
@@ -125,11 +128,10 @@ async def update_application(
     summary="Project deletion endpoint",
 )
 async def delete_application(
-    id: uuid.UUID,
-    auth_session: dict = Depends(get_current_session),
+    app_record: ApplicationModel = Depends(
+        require_role(get_member_application, OrganizationRole.OWNER)
+    ),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> None:
-    app_record = await get_member_application(db_session, auth_session["user_id"], id)
-
     await db_session.delete(app_record)
     await db_session.commit()

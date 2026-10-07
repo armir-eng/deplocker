@@ -7,8 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db_session
 from app.models.deployments import DeploymentModel
 from app.schemas.deployments import DeploymentCreate, DeploymentResponse
+from app.schemas.organizations import OrganizationRole
 from app.services.deployment import DeploymentService
 from app.utils.auth.shared import get_current_session
+from app.utils.organizations.membership import get_member_deployment
+from app.utils.organizations.roles import require_role
 
 router = APIRouter()
 
@@ -58,9 +61,10 @@ async def list_deployments(
 
 @router.delete("/{id}", status_code=204, summary="Clear up a specific deployment")
 async def delete_deployment(
-    id: uuid.UUID,
-    auth_session: dict = Depends(get_current_session),
+    deployment: DeploymentModel = Depends(
+        require_role(get_member_deployment, OrganizationRole.OWNER)
+    ),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> None:
     service = DeploymentService(db_session)
-    await service.delete_deployment(auth_session["user_id"], id)
+    await service.delete_deployment(deployment)

@@ -69,6 +69,12 @@ Passkeys use discoverable credentials, so `POST /auth/passkeys/login` identifies
 
 `User` → `Organization` is M2M via `OrganizationMembersModel`. On registration, a default organization is automatically created for the user with `OWNER` role.
 
+A membership's role ranks `OWNER` over `ADMIN` over `MEMBER`, each holding the powers of those below it. Routes reach a resource through `ensure_organization_member` and the `get_member_*` helpers (`app/utils/organizations/membership.py`): 404 outside the caller's organizations, 403 to a member below the `required_role` they're given (any member by default). A route needing more than membership on the resource in its `{id}` path takes it from the `require_role` dependency (`app/utils/organizations/roles.py`); a create route, whose parent is in the body, passes `required_role` to the helper.
+
+- `MEMBER` reads everything and deploys.
+- `ADMIN` also creates and updates projects and applications, since an application's config decides what code runs, with which secrets, on which domain.
+- `OWNER` also deletes projects, applications and deployments.
+
 ### Celery / async tasks
 
 `app/tasks/celery_app.py` configures Celery with RabbitMQ as the broker and Redis as the result backend. Currently the only task is `send_confirmation_email` in `app/tasks/account_confirmation.py`. After dispatching a task, the API returns a `task_id` which the frontend polls via `GET /tasks/{task_id}` until `SUCCESS` or `FAILURE`.

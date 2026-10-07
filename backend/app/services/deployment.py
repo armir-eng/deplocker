@@ -33,7 +33,6 @@ class DeploymentService:
         result = await self.db_session.execute(select_member_deployments(user_id))
         return result.scalars().all()
 
-    async def delete_deployment(self, user_id: int, id: uuid.UUID) -> None:
-        deployment = await get_member_deployment(self.db_session, user_id, id)
+    async def delete_deployment(self, deployment: DeploymentModel) -> None:
         await self.db_session.delete(deployment)
         await self.db_session.commit()
