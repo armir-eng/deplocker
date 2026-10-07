@@ -2,7 +2,7 @@ import logging
 import uuid
 from collections.abc import Sequence
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +10,7 @@ from app.core.database import get_db_session
 from app.models.projects import ProjectModel
 from app.schemas.projects import ProjectCreate, ProjectFields, ProjectResponse
 from app.utils.auth.shared import get_current_session
+from app.utils.naming.conflicts import commit_unless_name_taken
 from app.utils.organizations.membership import (
     ensure_organization_member,
     get_member_project,
@@ -35,16 +36,6 @@ async def create_project(
         db_session, auth_session["user_id"], payload.organization_id
     )
 
-    existing_project_name = await db_session.scalar(
-        select(ProjectModel.name).where(ProjectModel.name == payload.name)
-    )
-
-    if existing_project_name:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"A project with name '{payload.name}' already exists!",
-        )
-
     new_project = ProjectModel(
         organization_id=payload.organization_id,
         name=payload.name,
@@ -52,7 +43,9 @@ async def create_project(
         description=payload.description,
     )
     db_session.add(new_project)
-    await db_session.commit()
+    await commit_unless_name_taken(
+        db_session, f"The name '{payload.name}' is already taken in this organization!"
+    )
     await db_session.refresh(new_project)
 
     return new_project
@@ -100,9 +93,12 @@ async def update_project(
     project_record = await get_member_project(db_session, auth_session["user_id"], id)
 
     project_record.name = payload.name
+    project_record.slug = generate_slug(payload.name)
     project_record.description = payload.description
     project_record.updated_at = func.now()
-    await db_session.commit()
+    await commit_unless_name_taken(
+        db_session, f"The name '{payload.name}' is already taken in this organization!"
+    )
     await db_session.refresh(project_record)
 
     return project_record

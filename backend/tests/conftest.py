@@ -15,8 +15,14 @@ from app.main import app
 
 TEST_DB_URL = re.sub(r"\/(?!.*\/).*", f"/{settings.TEST_DB}", DATABASE_URL)
 test_engine = create_async_engine(TEST_DB_URL)
+# Bound to a connection already inside the per-test transaction, a session's
+# rollback would end that transaction by default; with savepoints, a route that
+# rolls back only undoes its own work.
 test_session = async_sessionmaker(
-    bind=test_engine, autoflush=False, expire_on_commit=False
+    bind=test_engine,
+    autoflush=False,
+    expire_on_commit=False,
+    join_transaction_mode="create_savepoint",
 )
 
 

@@ -9,6 +9,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -28,12 +29,8 @@ class ApplicationModel(Base):
     project_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("projects.id"), nullable=False, index=True
     )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, unique=True, index=True
-    )
-    slug: Mapped[str] = mapped_column(
-        String(100), nullable=False, unique=True, index=True
-    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    slug: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
 
     # Git source-related fields
@@ -46,6 +43,8 @@ class ApplicationModel(Base):
     # Deployment config fields
     port: Mapped[int] = mapped_column(Integer, nullable=False, default=8000)
     env_vars: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    # Unlike name and slug, the domain stays globally unique: routing resolves
+    # a request to an application by its domain alone.
     domain: Mapped[str] = mapped_column(
         String(255), nullable=False, unique=True, index=True
     )
@@ -75,4 +74,11 @@ class ApplicationModel(Base):
     project: Mapped["ProjectModel"] = relationship(back_populates="applications")  # type: ignore[name-defined]
     deployments: Mapped[list["DeploymentModel"]] = relationship(  # type: ignore[name-defined]
         back_populates="application", cascade="all, delete-orphan"
+    )
+
+    # Names and slugs are unique within a project, so tenants don't compete for
+    # them.
+    __table_args__ = (
+        UniqueConstraint("project_id", "name", name="uq_applications_project_id_name"),
+        UniqueConstraint("project_id", "slug", name="uq_applications_project_id_slug"),
     )

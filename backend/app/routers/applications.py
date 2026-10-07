@@ -1,8 +1,7 @@
 import uuid
 from collections.abc import Sequence
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
@@ -13,6 +12,7 @@ from app.schemas.applications import (
     ApplicationUpdate,
 )
 from app.utils.auth.shared import get_current_session
+from app.utils.naming.conflicts import commit_unless_name_taken
 from app.utils.organizations.membership import (
     get_member_application,
     get_member_project,
@@ -36,16 +36,6 @@ async def create_application(
 ) -> ApplicationModel:
     await get_member_project(db_session, auth_session["user_id"], payload.project_id)
 
-    existing_application_name = await db_session.scalar(
-        select(ApplicationModel.name).where(ApplicationModel.name == payload.name)
-    )
-
-    if existing_application_name:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Application '{payload.name}' already exists!",
-        )
-
     new_application = ApplicationModel(
         name=payload.name,
         slug=generate_slug(payload.name),
@@ -60,7 +50,9 @@ async def create_application(
     )
 
     db_session.add(new_application)
-    await db_session.commit()
+    await commit_unless_name_taken(
+        db_session, f"The name '{payload.name}' is already taken in this project!"
+    )
     await db_session.refresh(new_application)
 
     return new_application
@@ -116,7 +108,12 @@ async def update_application(
     for field, value in update_data.items():
         setattr(app_record, field, value)
 
-    await db_session.commit()
+    if payload.name is not None:
+        app_record.slug = generate_slug(payload.name)
+
+    await commit_unless_name_taken(
+        db_session, f"The name '{payload.name}' is already taken in this project!"
+    )
     await db_session.refresh(app_record)
 
     return app_record

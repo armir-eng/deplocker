@@ -23,9 +23,9 @@ erDiagram
     VARCHAR(500) git_url
     VARCHAR(255) image_tag "nullable"
     DATETIME last_deployed_at "nullable"
-    VARCHAR(255) name UK "indexed"
+    VARCHAR(255) name
     INTEGER port
-    VARCHAR(100) slug UK "indexed"
+    VARCHAR(100) slug
     ENUM status
     DATETIME updated_at "nullable"
   }
@@ -74,8 +74,8 @@ erDiagram
     UUID organization_id FK "indexed"
     DATETIME created_at
     TEXT description "nullable"
-    VARCHAR(255) name UK "indexed"
-    VARCHAR(100) slug UK "indexed"
+    VARCHAR(255) name
+    VARCHAR(100) slug
     ENUM status
     DATETIME updated_at "nullable"
   }

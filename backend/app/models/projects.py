@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -19,12 +19,8 @@ class ProjectModel(Base):
         ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, unique=True, index=True
-    )
-    slug: Mapped[str] = mapped_column(
-        String(100), nullable=False, unique=True, index=True
-    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    slug: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=True)
     status: Mapped[ProjectStatus] = mapped_column(
         Enum(ProjectStatus), nullable=False, default=ProjectStatus.ACTIVE
@@ -41,4 +37,15 @@ class ProjectModel(Base):
     )
     applications: Mapped[list["ApplicationModel"]] = relationship(  # type: ignore[name-defined]
         back_populates="project"
+    )
+
+    # Names and slugs are unique within an organization, so tenants don't
+    # compete for them.
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id", "name", name="uq_projects_organization_id_name"
+        ),
+        UniqueConstraint(
+            "organization_id", "slug", name="uq_projects_organization_id_slug"
+        ),
     )

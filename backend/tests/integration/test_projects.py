@@ -99,6 +99,67 @@ async def test_get_project_by_name(
         pytest.fail(f"Response data is invalid: {e.errors()!s}")
 
 
+# "deplocker" is a different name, but shares the existing project's slug.
+@pytest.mark.anyio
+@pytest.mark.parametrize("name", ["Deplocker", "deplocker"])
+async def test_create_project_with_taken_name(
+    authenticated_client: AsyncClient,
+    project_create_test: Response,
+    default_organization_id: uuid.UUID,
+    name: str,
+) -> None:
+    assert project_create_test.json()["name"] == "Deplocker"
+
+    payload = {
+        "name": name,
+        "description": fake.sentence(),
+        "organization_id": str(default_organization_id),
+    }
+
+    response = await authenticated_client.post("/projects", json=payload)
+    assert response.status_code == 409
+
+
+@pytest.mark.anyio
+async def test_rename_project_regenerates_slug(
+    authenticated_client: AsyncClient,
+    project_create_test: Response,
+    project_factory: Callable,
+) -> None:
+    project_id = project_create_test.json()["id"]
+
+    response = await authenticated_client.patch(
+        f"/projects/{project_id}",
+        json={"name": "Deplocker Core", "description": fake.sentence()},
+    )
+    assert response.status_code == 200
+    assert response.json()["slug"] == "deplocker-core"
+
+    # The old name and slug are free again.
+    await project_factory(name="Deplocker", description=fake.sentence())
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("name", ["Deplocker", "deplocker"])
+async def test_rename_project_to_taken_name(
+    authenticated_client: AsyncClient,
+    project_create_test: Response,
+    project_factory: Callable,
+    name: str,
+) -> None:
+    other_project = await project_factory(name="Other", description=fake.sentence())
+    other_project_id = other_project.json()["id"]
+
+    response = await authenticated_client.patch(
+        f"/projects/{other_project_id}",
+        json={"name": name, "description": fake.sentence()},
+    )
+    assert response.status_code == 409
+
+    response = await authenticated_client.get(f"/projects/{other_project_id}")
+    assert response.json()["name"] == "Other"
+
+
 @pytest.mark.anyio
 async def test_delete_project(
     authenticated_client: AsyncClient, project_create_test: Response

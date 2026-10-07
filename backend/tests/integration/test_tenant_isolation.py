@@ -171,3 +171,43 @@ async def test_list_deployments_leaves_out_foreign_ones(
     response = await authenticated_client.get("/deployments/")
     assert response.status_code == 200
     assert [d["id"] for d in response.json()] == [create_response.json()["id"]]
+
+
+# Names are unique per organization (projects) and per project (applications),
+# so a name taken across the boundary is free to use, and a 409 for it would
+# confirm that it exists elsewhere.
+@pytest.mark.anyio
+async def test_create_project_with_foreign_project_name(
+    authenticated_client: AsyncClient,
+    default_organization_id: uuid.UUID,
+    foreign_project: ProjectModel,
+) -> None:
+    payload = {
+        "name": foreign_project.name,
+        "description": "Same name as a project in another organization.",
+        "organization_id": str(default_organization_id),
+    }
+
+    response = await authenticated_client.post("/projects", json=payload)
+    assert response.status_code == 201
+    assert response.json()["slug"] == foreign_project.slug
+
+
+@pytest.mark.anyio
+async def test_create_application_with_foreign_application_name(
+    authenticated_client: AsyncClient,
+    project_create_test: Response,
+    foreign_application: ApplicationModel,
+) -> None:
+    payload = {
+        "project_id": project_create_test.json()["id"],
+        "name": foreign_application.name,
+        "description": "Same name as an application in another organization.",
+        "git_url": "https://github.com/armir-eng/deplocker-api",
+        "env_vars": {},
+        "domain": "own-application.deplocker.com",
+    }
+
+    response = await authenticated_client.post("/applications", json=payload)
+    assert response.status_code == 201
+    assert response.json()["slug"] == foreign_application.slug

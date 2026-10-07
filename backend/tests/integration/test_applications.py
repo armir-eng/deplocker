@@ -70,6 +70,78 @@ async def test_get_application_by_id(
         pytest.fail(f"Response validation failed: {e.errors()}")
 
 
+# "deplocker-api" is a different name, but shares the existing application's slug.
+@pytest.mark.anyio
+@pytest.mark.parametrize("name", ["Deplocker API", "deplocker-api"])
+async def test_create_application_with_taken_name(
+    authenticated_client: AsyncClient, application_create_test: Response, name: str
+) -> None:
+    existing_application = application_create_test.json()
+    assert existing_application["name"] == "Deplocker API"
+
+    payload = {
+        "project_id": existing_application["project_id"],
+        "name": name,
+        "description": fake.sentence(),
+        "git_url": fake.url(),
+        "env_vars": {},
+        "domain": fake.domain_name(),
+    }
+
+    response = await authenticated_client.post("/applications", json=payload)
+    assert response.status_code == 409
+
+
+@pytest.mark.anyio
+async def test_rename_application_regenerates_slug(
+    authenticated_client: AsyncClient,
+    application_create_test: Response,
+    application_factory: Callable,
+) -> None:
+    application_id = application_create_test.json()["id"]
+
+    response = await authenticated_client.patch(
+        f"/applications/{application_id}", json={"name": "Deplocker Backend"}
+    )
+    assert response.status_code == 200
+    assert response.json()["slug"] == "deplocker-backend"
+
+    # The old name and slug are free again.
+    await application_factory(
+        name="Deplocker API",
+        description=fake.sentence(),
+        git_url=fake.url(),
+        env_vars={},
+        domain=fake.domain_name(),
+    )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("name", ["Deplocker API", "deplocker-api"])
+async def test_rename_application_to_taken_name(
+    authenticated_client: AsyncClient,
+    application_create_test: Response,
+    application_factory: Callable,
+    name: str,
+) -> None:
+    other_application = await application_factory(
+        name="Other",
+        description=fake.sentence(),
+        git_url=fake.url(),
+        env_vars={},
+        domain=fake.domain_name(),
+    )
+    other_application_id = other_application.json()["id"]
+
+    response = await authenticated_client.patch(
+        f"/applications/{other_application_id}", json={"name": name}
+    )
+    assert response.status_code == 409
+
+    response = await authenticated_client.get(f"/applications/{other_application_id}")
+    assert response.json()["name"] == "Other"
+
+
 @pytest.mark.anyio
 @pytest.mark.parametrize(("method", "path"), APPLICATION_ROUTES)
 @pytest.mark.parametrize("session_id", [None, "invalid-session"])
