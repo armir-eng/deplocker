@@ -121,6 +121,20 @@ async def test_create_project_with_taken_name(
 
 
 @pytest.mark.anyio
+async def test_create_project_with_unsluggable_name(
+    authenticated_client: AsyncClient, default_organization_id: uuid.UUID
+) -> None:
+    payload = {
+        "name": "!!!",
+        "description": fake.sentence(),
+        "organization_id": str(default_organization_id),
+    }
+
+    response = await authenticated_client.post("/projects", json=payload)
+    assert response.status_code == 422
+
+
+@pytest.mark.anyio
 async def test_rename_project_regenerates_slug(
     authenticated_client: AsyncClient,
     project_create_test: Response,

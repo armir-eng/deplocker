@@ -1,6 +1,8 @@
 import re
+from typing import Annotated
 
 from anyascii import anyascii
+from pydantic import AfterValidator
 
 
 def generate_slug(name: str) -> str:
@@ -23,8 +25,16 @@ def generate_slug(name: str) -> str:
     slug = slug.strip("-")  # Strip leading or trailing hyphens
 
     if not slug:
-        raise ValueError(
-            "Project name must contain at least one alphanumeric character!"
-        )
+        raise ValueError("Name must contain at least one alphanumeric character!")
 
     return slug
+
+
+def ensure_sluggable(name: str) -> str:
+    generate_slug(name)
+    return name
+
+
+# A name that `generate_slug` accepts. Request schemas use it, so an unusable
+# name is rejected as a 422 before it reaches a route.
+SluggableName = Annotated[str, AfterValidator(ensure_sluggable)]

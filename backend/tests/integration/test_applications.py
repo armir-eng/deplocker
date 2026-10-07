@@ -93,6 +93,18 @@ async def test_create_application_with_taken_name(
 
 
 @pytest.mark.anyio
+async def test_rename_application_to_unsluggable_name(
+    authenticated_client: AsyncClient, application_create_test: Response
+) -> None:
+    application_id = application_create_test.json()["id"]
+
+    response = await authenticated_client.patch(
+        f"/applications/{application_id}", json={"name": "!!!"}
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.anyio
 async def test_rename_application_regenerates_slug(
     authenticated_client: AsyncClient,
     application_create_test: Response,

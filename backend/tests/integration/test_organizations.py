@@ -62,6 +62,16 @@ async def test_create_organization_with_taken_slug(
     assert response.status_code == 409
 
 
+@pytest.mark.anyio
+async def test_create_organization_with_unsluggable_name(
+    authenticated_client: AsyncClient, test_user_id: int
+) -> None:
+    payload = {"user_id": test_user_id, "name": "!!!"}
+
+    response = await authenticated_client.post("/orgs/create", json=payload)
+    assert response.status_code == 422
+
+
 # `squatted_default_slug` comes first, so it exists before the test user
 # registers.
 @pytest.mark.anyio
