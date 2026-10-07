@@ -52,7 +52,7 @@ erDiagram
     UUID id PK
     INTEGER owner_id FK "indexed"
     DATETIME created_at
-    VARCHAR(255) name UK "indexed"
+    VARCHAR(255) name
     VARCHAR(100) slug UK "indexed"
     DATETIME updated_at "nullable"
   }

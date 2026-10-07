@@ -27,13 +27,11 @@ logger = logging.getLogger(__name__)
 
 
 async def _add_default_organization(db_session: AsyncSession, user: UserModel) -> None:
-    # `organizations.name` and `.slug` are both globally unique, so the default
-    # organization is named after its owner rather than a fixed string.
     name = f"{user.username}'s organization"
     organization = OrganizationModel(
         owner_id=user.id,
         name=name,
-        slug=generate_slug(name),
+        slug=await _unique_organization_slug(db_session, generate_slug(name)),
     )
     db_session.add(organization)
     await db_session.flush()
@@ -119,6 +117,20 @@ async def _unique_username(db_session: AsyncSession, base: str) -> str:
     return candidate
 
 
+# Usernames are unique, but their slugs need not be ("a_b" and "a-b" both give
+# "a-bs-organization"), and registration shouldn't fail over the default
+# organization's handle.
+async def _unique_organization_slug(db_session: AsyncSession, root: str) -> str:
+    candidate = root
+    suffix = 1
+    while await db_session.scalar(
+        select(exists().where(OrganizationModel.slug == candidate))
+    ):
+        suffix += 1
+        candidate = f"{root}-{suffix}"
+    return candidate
+
+
 async def get_or_create_oauth_user(
     db_session: AsyncSession,
     *,
@@ -131,7 +143,7 @@ async def get_or_create_oauth_user(
     Lookup and insert are separate statements, so uniqueness is enforced by the
     database, not here: a concurrent callback for the same email inserts between
     them and the flush fails with an `IntegrityError`. `users.username` and the
-    default organization's `name`/`slug` are unique too, so their races raise the
+    default organization's `slug` are unique too, so their races raise the
     same error — but the recovery only re-reads by email, turning those into a 409
     the caller could have retried. The logged constraint name tells them apart.
     """

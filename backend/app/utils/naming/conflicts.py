@@ -10,6 +10,7 @@ NAME_CONSTRAINTS = frozenset(
         "uq_projects_organization_id_slug",
         "uq_applications_project_id_name",
         "uq_applications_project_id_slug",
+        "ix_organizations_slug",
     }
 )
 

@@ -60,7 +60,7 @@ Passkeys use discoverable credentials, so `POST /auth/passkeys/login` identifies
 - `Base` (`app/core/database.py`) is the SQLAlchemy declarative base; all models inherit from it and get a `to_dict()` helper.
 - Schemas (`app/schemas/`) are Pydantic models used for request validation and response serialization — they are separate from SQLAlchemy models.
 - Slugs are auto-generated via `generate_slug()` (`app/utils/text/slug_generator.py`) when creating Projects, Applications, and Organizations.
-- Names and slugs are unique within their parent: a project's per organization, an application's per project.
+- Names and slugs are unique within their parent: a project's per organization, an application's per project. An organization's name is a free display label and its slug a global handle (the default organization's gets a numeric suffix on collision).
 - Routes that write a name commit through `commit_unless_name_taken` (`app/utils/naming/conflicts.py`), which turns a violation of one of those constraints into a 409 — the constraint decides, not a lookup beforehand, so concurrent requests can't race past it. A new name or slug constraint must be added to its `NAME_CONSTRAINTS`, or its violations surface as 500s.
 
 ### Domain model

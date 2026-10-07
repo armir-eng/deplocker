@@ -15,9 +15,9 @@ class OrganizationModel(Base):
     owner_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"), nullable=False, index=True
     )
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, unique=True, index=True
-    )
+    # The name is a display label any organization may reuse; the slug is the
+    # organization's handle, so it stays unique across all of them.
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(
         String(100), nullable=False, unique=True, index=True
     )

@@ -13,6 +13,7 @@ from app.schemas.organizations import (
     OrganizationRole,
 )
 from app.utils.auth.shared import get_current_session
+from app.utils.naming.conflicts import commit_unless_name_taken
 from app.utils.text.slug_generator import generate_slug
 
 router = APIRouter()
@@ -29,11 +30,14 @@ async def create_organization(
     auth_session: dict = Depends(get_current_session),
     db_session: AsyncSession = Depends(get_db_session),
 ) -> OrganizationModel:
+    slug = generate_slug(payload.name)
     new_organization = OrganizationModel(
-        owner_id=payload.user_id, name=payload.name, slug=generate_slug(payload.name)
+        owner_id=payload.user_id, name=payload.name, slug=slug
     )
     db_session.add(new_organization)
-    await db_session.commit()
+    await commit_unless_name_taken(
+        db_session, f"The slug '{slug}' is already taken by another organization!"
+    )
     await db_session.refresh(new_organization)
 
     new_org_member = OrganizationMembersModel(
