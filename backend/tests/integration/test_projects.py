@@ -185,6 +185,21 @@ async def test_delete_project(
 
 
 @pytest.mark.anyio
+async def test_delete_project_deletes_its_applications(
+    authenticated_client: AsyncClient, application_create_test: Response
+) -> None:
+    application = application_create_test.json()
+
+    delete_response = await authenticated_client.delete(
+        f"/projects/{application['project_id']}"
+    )
+    assert delete_response.status_code == 204
+
+    response = await authenticated_client.get(f"/applications/{application['id']}")
+    assert response.status_code == 404
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize(("method", "path"), PROJECT_ROUTES)
 @pytest.mark.parametrize("session_id", [None, "invalid-session"])
 async def test_projects_require_authentication(

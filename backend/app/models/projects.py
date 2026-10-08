@@ -36,7 +36,7 @@ class ProjectModel(Base):
         back_populates="projects"
     )
     applications: Mapped[list["ApplicationModel"]] = relationship(  # type: ignore[name-defined]
-        back_populates="project"
+        back_populates="project", cascade="all, delete-orphan"
     )
 
     # Names and slugs are unique within an organization, so tenants don't
