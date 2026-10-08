@@ -67,7 +67,6 @@ async def register_new_user(
         email=payload.email,
         full_name=payload.full_name,
         password=get_password_hash(payload.password),
-        role=payload.role,
     )
     db_session.add(new_user)
     await db_session.flush()

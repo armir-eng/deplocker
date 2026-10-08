@@ -75,7 +75,7 @@ async def test_google_callback_creates_new_user(
     assert db_user is not None
     assert db_user.username == "oauth.user"
     assert db_user.full_name == GOOGLE_USER["name"]
-    assert db_user.role == UserRole.ADMIN
+    assert db_user.role == UserRole.USER
     assert db_user.is_active is True
 
 

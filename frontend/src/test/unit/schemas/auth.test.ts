@@ -11,7 +11,6 @@ describe("RegisterRequest", () => {
     username: "john",
     email: "john.doe@gmail.com",
     full_name: "John Doe",
-    role: "admin",
     password: "secret123",
     confirm_password: "secret123",
   };

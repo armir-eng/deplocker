@@ -21,7 +21,6 @@ def test_user_register_payload() -> dict[str, str]:
         "email": "armir.shehaj@gmail.com",
         "full_name": "Armir Shehaj",
         "password": "Armir2026!",
-        "role": "admin",
     }
 
 
@@ -90,17 +89,6 @@ def test_malformed_email_on_user_register(
 ) -> None:
     payload = test_user_register_payload
     payload["email"] = "armir.shehaj@"  # Unsettle the email to a wrong one
-
-    with pytest.raises(ValidationError):
-        UserRegister(**payload)
-
-
-@pytest.mark.anyio
-def test_wrong_role_on_user_register(
-    test_user_register_payload: dict[str, str],
-) -> None:
-    payload = test_user_register_payload
-    payload["role"] = "superuser"  # Unsettle the role to a non-existent one
 
     with pytest.raises(ValidationError):
         UserRegister(**payload)

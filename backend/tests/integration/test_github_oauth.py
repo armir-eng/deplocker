@@ -83,7 +83,7 @@ async def test_github_callback_creates_user_with_private_email(
     assert db_user is not None
     assert db_user.username == "octocat"
     assert db_user.full_name == "Octo Cat"
-    assert db_user.role == UserRole.ADMIN
+    assert db_user.role == UserRole.USER
     assert db_user.is_active is True
 
 

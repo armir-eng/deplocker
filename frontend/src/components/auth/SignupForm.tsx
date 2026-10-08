@@ -14,14 +14,6 @@ import {
   FieldLabel,
 } from "@/components/shadcn/field";
 import { Input } from "@/components/shadcn/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../shadcn/select";
 import { useForm, Controller } from "react-hook-form";
 import {
   RegisterRequest,
@@ -56,7 +48,6 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
       username: "",
       email: "",
       full_name: "",
-      role: "user",
       password: "",
       confirm_password: "",
     },
@@ -216,28 +207,6 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                         errors={[{ message: fieldState.error?.message }]}
                       />
                     )}
-                  </Field>
-                )}
-              />
-              <Controller
-                name="role"
-                control={form.control}
-                defaultValue="admin"
-                render={({ field }) => (
-                  <Field>
-                    <FieldLabel htmlFor="role">Role</FieldLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectItem value="owner">Owner</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="user">User</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
                   </Field>
                 )}
               />

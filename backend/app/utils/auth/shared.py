@@ -14,7 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core import redis
 from app.core.conf import settings
 from app.models import OrganizationMembersModel, OrganizationModel, UserModel
-from app.schemas.auth import SessionData, UserRole
+from app.schemas.auth import SessionData
 from app.schemas.organizations import OrganizationRole
 from app.utils.auth.deplocker_auth import get_password_hash
 from app.utils.text.slug_generator import generate_slug
@@ -159,7 +159,6 @@ async def get_or_create_oauth_user(
         email=email,
         full_name=full_name or username,
         password=get_password_hash(uuid.uuid4().hex),
-        role=UserRole.ADMIN,
         is_active=True,  # The provider already verified the address
     )
 

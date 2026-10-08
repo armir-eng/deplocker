@@ -12,7 +12,6 @@ export const RegisterRequest = z
       .optional(),
     email: z.email("Please, provide a valid email address."),
     full_name: z.string().min(1),
-    role: z.enum(["admin", "user"]).optional(),
     password: z
       .string()
       .min(8, "Password must be at least 8 characters long.")

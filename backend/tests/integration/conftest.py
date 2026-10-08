@@ -27,7 +27,6 @@ AUTH_TEST_USER = {
     "username": "test_user",
     "email": "test.user@deplocker.com",
     "full_name": "Test User",
-    "role": "admin",
     "password": "TestUser2026!",
 }
 
