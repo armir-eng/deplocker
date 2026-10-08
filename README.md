@@ -1,162 +1,169 @@
 # Deplocker
 
-Self-hosted deployment platform for containerized applications.
+Deplocker is a self-hosted platform for deploying containerized applications.
+You describe an application once (its Git repository, branch, Dockerfile, port,
+environment variables and domain), and Deplocker is meant to build it and run
+it on your own server.
 
-Every check is a [Makefile](Makefile) target. Hooks and CI invoke the same
-targets, so a local result and a pipeline result cannot disagree.
+Today it covers everything around that step: accounts, organizations,
+projects, application configuration and deployment records. The pipeline that
+clones, builds and runs an application is not implemented yet.
+
+- **Organizations** group users. Each member has a role: *owner*, *admin* or
+  *member*.
+- **Projects** belong to an organization and group its applications.
+- **Applications** hold the configuration needed to build and run one service.
+- **Deployments** record each attempt to ship an application.
+
+Users sign in with email and password, Google, GitHub, or a passkey.
 
 ---
 
-## Prerequisites
+## Architecture
 
-`docker` + `docker compose` v2, `uv`, `node`/`npm`, and GNU Make.
+The whole stack runs with Docker Compose, defined in
+[docker-compose.yml](docker-compose.yml).
 
-> [!WARNING]
-> Make is required on every machine that runs this project, **including the
-> self-hosted CI runner**. The hooks and all pipeline steps invoke it directly;
-> without it each one fails with `make: command not found`.
+| Service | What it does | Host port |
+| --- | --- | --- |
+| `api` | REST API ([FastAPI](https://fastapi.tiangolo.com/)) and a [Celery](https://docs.celeryq.dev/) worker for background jobs such as confirmation emails | `127.0.0.1:8080` |
+| `ui` | Web app (React, Vite, Tailwind), served by nginx | `8082` |
+| `postgres` | Main database | `5435` |
+| `redis-stack` | Login sessions and background job results | `6380` |
+| `rabbitmq` | Queue that hands background jobs to the worker | `5672`, admin UI `15672` |
 
-Installation instructions for all platforms are on the GNU Make page:
-<https://www.gnu.org/software/make/> — Linux via the distribution package
-manager, macOS via the Xcode Command Line Tools, Windows via WSL.
+Backend details are in [backend/CLAUDE.md](backend/CLAUDE.md), and the database
+schema in [backend/docs/models.md](backend/docs/models.md).
+
+---
+
+## Getting started
+
+### 1. Install the tools
+
+Docker with Compose v2, GNU Make, [uv](https://docs.astral.sh/uv/) (Python
+package manager) and Node.js with npm.
+
+On Linux, the [dev container](.devcontainer/devcontainer.json) provides all of
+them except Docker, which it uses from the host.
+
+### 2. Create the configuration file
+
+Every service reads its settings from `/etc/deplocker/.env`, on development
+machines and on the production server alike. Compose refuses to start if the
+file is missing. Create it from the template and fill in the values:
 
 ```sh
-make --version   # GNU Make 4.x expected
+sudo install -d -o "$(id -un)" -g "$(id -gn)" -m 0700 /etc/deplocker
+install -m 0600 backend/.env.example /etc/deplocker/.env
+$EDITOR /etc/deplocker/.env
 ```
 
----
-
-## Git hooks
-
-Hooks live in [.githooks/](.githooks/) rather than `.git/hooks/`, so they are
-version-controlled and reviewed like any other code. Git does not read that
-directory by default; enable it once per clone:
+### 3. Install dependencies and enable the Git hooks
 
 ```sh
+make backend-install-local frontend-install-ci
 git config core.hooksPath .githooks
 ```
 
-| Hook | Rule | Reason |
-| --- | --- | --- |
-| `pre-commit` | `make lint-ci` must pass — ESLint, Prettier, `tsc`, ruff, mypy | A formatting violation fails in seconds locally instead of consuming a full CI run |
-| `pre-push` | Pushes to `master` are rejected | Keeps the default branch reachable only through a pull request |
+The hooks are described under [Checks](#checks).
 
-Hooks verify but never rewrite sources. Fix violations with
-`make backend-reformat` or `make frontend-reformat`.
+### 4. Start the stack
 
-Both are bypassable with `--no-verify`, and are absent in a clone that skipped
-the opt-in. They are a fast feedback loop, not a control — and, as noted under
-[Branch protection](#branch-protection), currently the only thing guarding
-`master`.
+```sh
+make start-dev
+```
+
+This builds the images when needed, starts the backend containers in the
+background, and runs the Vite dev server in the foreground, which reloads the
+page as you edit.
+
+- Web app: <http://localhost:5173>
+- API: <http://localhost:8080>, interactive docs at <http://localhost:8080/docs>
+
+Stop Vite with <kbd>Ctrl</kbd>+<kbd>C</kbd> and the containers with
+`make stop-dev`.
+
+### Everyday commands
+
+All commands are [Makefile](Makefile) targets.
+
+| Command | What it does |
+| --- | --- |
+| `make start-dev` / `make stop-dev` | Start or stop the development stack |
+| `make start-dev-https` | Same, over HTTPS, for testing passkeys (see below) |
+| `make start-prod` / `make stop-prod` | Run the full stack in containers, web app included, at <http://localhost:8082> |
+| `make backend-reformat` | Format the Python code and fix lint errors |
+| `make frontend-reformat` | Format the frontend code |
+| `make backend-test-ci` | Run the backend tests in a separate, throwaway stack; remove it afterwards with `make backend-clean-ci` |
+| `make frontend-test-ci` | Run the frontend tests |
+| `make clean-dev` | Remove the containers and images, so the next start rebuilds them |
+
+### Testing passkeys over HTTPS
+
+`make start-dev-https` serves the web app at <https://lvh.me:5173> and forwards
+API calls through Vite at `/api`, so passkeys are registered against a real
+domain over HTTPS, as in production. `lvh.me` is a public domain that resolves
+to `127.0.0.1`.
+
+The certificate comes from [mkcert](https://github.com/FiloSottile/mkcert).
+Install mkcert, then once per machine:
+
+```sh
+mkcert -install                  # create a local certificate authority and trust it
+cd frontend && mkcert lvh.me     # write lvh.me.pem and lvh.me-key.pem
+```
+
+Restart the browser afterwards so it picks up the new authority. On Linux,
+Firefox and Chrome trust it only if `certutil` (package `libnss3-tools`) was
+installed before `mkcert -install`. The `.pem` files are ignored by Git.
 
 ---
 
-## Local HTTPS
+## Checks
 
-Passkeys need a secure origin on a real domain; `localhost` cannot run the
-WebAuthn ceremony. `make start-dev-https` serves the dev stack at
-<https://lvh.me:5173> (`lvh.me` resolves to `127.0.0.1`) with a locally
-trusted certificate from [mkcert](https://github.com/FiloSottile/mkcert).
+Every check is a Make target, and the Git hooks and CI run the same targets, so
+a check gives the same result on your machine as in CI.
 
-Once per machine, after installing mkcert:
+| Hook | What it does |
+| --- | --- |
+| `pre-commit` | Runs `make lint-ci` for the parts with staged changes. Frontend: ESLint, Prettier and the TypeScript compiler. Backend: Ruff's format check and mypy. |
+| `pre-push` | Rejects pushes to `master`, so changes reach it only through a pull request |
 
-```sh
-mkcert -install                  # create a local CA and trust it in system + browsers
-cd frontend && mkcert lvh.me     # writes lvh.me.pem and lvh.me-key.pem
-```
-
-The `.pem` files are gitignored; [vite.config.ts](frontend/vite.config.ts)
-reads them by those names. Restart the browser after `mkcert -install` so it
-picks up the new CA. On Linux, Firefox and Chrome trust it only if `certutil`
-(`libnss3-tools`) is installed before running `mkcert -install`.
+The hooks only report problems; fix formatting with `make backend-reformat` or
+`make frontend-reformat`. Git skips them with `--no-verify`, and they do nothing
+in a clone that has not enabled them.
 
 ---
 
 ## CI/CD
 
-[.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml), triggered on every
-push to every branch. Both jobs run on `self-hosted`, and the runner is also the
-production host.
+The workflow in [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml) runs
+on every push to any branch. Both of its jobs run on a self-hosted runner,
+which is also the production server.
 
-### `ci` — "Build & Test"
+**Build & Test** (`ci` job):
 
-One Make target per step, in order:
+1. Checks each part the push changed. Frontend: lint, type check, tests.
+   Backend: lint, type check, a check that the migrations match the models,
+   and tests. A new branch or a force push checks both.
+2. Removes the backend test stack, even when a check failed, because the next
+   run reuses the runner's workspace.
+3. Builds the `api` and `ui` images and publishes them to the GitHub Container
+   Registry, tagged with the commit SHA and `latest`.
 
-```
-frontend-install-ci → frontend-lint-ci → frontend-test-ci
-backend-lint-ci → backend-test-ci → backend-clean-ci
-build-ci → publish-ci
-```
+**Deploy to production** (`cd` job) runs only on `master`, after `ci`
+succeeds. It restarts the stack with the images `ci` just built on the same
+machine, then waits up to three minutes for the API to report healthy, failing
+the job otherwise.
 
-`backend-clean-ci` is guarded with `if: always()`, because the runner workspace
-is reused between runs: a failed test run must still tear down its compose stack
-and volumes, or it corrupts the next one.
+The workflow handles no secrets: the server's configuration lives in
+`/etc/deplocker/.env`, written by hand. GitHub needs a single repository
+variable:
 
-Images are published to GHCR under both the commit SHA and `latest`. The SHA tag
-is what makes a deployed artifact traceable to its source commit.
-
-### `cd` — "Deploy to production"
-
-Gated on `needs: ci` and `refs/heads/master`. The `needs` clause is the gate —
-without it the job would start in parallel with `ci` and could deploy a commit
-whose tests never passed.
-
-The job checks out and runs `make deploy-cd`. It handles no secrets: production
-configuration lives at `/etc/deplocker/.env`, provisioned on the host by
-hand and never written by CI. Compose reads that file host-side and injects the
-values as environment variables — it is not mounted, and the infrastructure
-images require it that way, since `postgres`, `redis-stack` and `rabbitmq` take
-their credentials from the environment rather than parsing a file.
-
-Every service in [docker-compose.yml](docker-compose.yml) names that path
-literally, so the same file serves development and production. Each developer
-provisions it on their own machine; compose aborts with a clear error if it is
-missing, rather than starting the stack with an empty environment.
-
-One-time setup, on the production host as the runner user and on each
-development machine:
-
-```sh
-sudo install -d -o "$(id -un)" -g "$(id -gn)" -m 0700 /etc/deplocker
-install -m 0600 /dev/null /etc/deplocker/.env
-$EDITOR /etc/deplocker/.env
-```
-
-`deploy-cd` reuses the images `ci` built on this same host, so no registry
-round-trip occurs. It waits on the API healthcheck and fails the job if the stack
-does not come up, which keeps a broken deploy from being reported as success.
-
-### Required on GitHub
-
-| Kind | Name | Purpose |
-| --- | --- | --- |
-| Variable | `PROD_API_URL` | Baked into the frontend bundle at build time by Vite |
-
-No secrets are stored in GitHub. `GITHUB_TOKEN` is supplied automatically for the
-GHCR login, and production configuration is provisioned on the host as above.
-
----
-
-## Branch protection
-
-Server-side protection is currently unavailable. GitHub gates both rulesets and
-classic branch protection behind GitHub Pro for private repositories, and this
-one is private on a Free personal account. Both REST endpoints return:
-
-```
-403  Upgrade to GitHub Pro or make this repository public to enable this feature.
-```
-
-`master` is therefore guarded only by the `pre-push` hook — a local convention,
-not an enforced control. Merges to `master` rest on agreement, not on the
-platform rejecting anything.
-
-Making the repository public, or upgrading to Pro, lifts the restriction. Then
-configure **Settings → Rules → Rulesets** against `master`: require a pull
-request, require the `Build & Test` status check, block force pushes and
-deletions. The check name is the job's `name:` field, matched literally, and it
-appears in the picker only after the workflow has reported once — enabling it
-sooner blocks every pull request indefinitely.
+| Variable | Purpose |
+| --- | --- |
+| `PROD_API_URL` | The production API URL, built into the web app's bundle |
 
 ---
 
