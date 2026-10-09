@@ -8,7 +8,7 @@ import { APICallParams } from "../api/types";
 // It runs on very first component render, and makes sure the data are immediately fetched.
 // Then, the result is combined with a dedicated state varibale to store those data.
 // It efficiently uses the HttpRequest interface, exposing only the result of it, and reducing a considerable amount of boilerplate coming from directly instantiating and consuming it.
-export default function useAPIOnMount<S extends z.ZodObject>(
+export default function useAPIOnMount<S extends z.ZodType>(
   endpointURL: string,
   responseSchema: S,
   apiCallParams?: APICallParams,

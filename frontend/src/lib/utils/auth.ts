@@ -30,7 +30,6 @@ export async function submitDeplockerLogin(
   const [response, error] = await request.send(LoginResponse);
 
   if (response) {
-    setOnLocalStorage("user_id", String(response.user_id));
     setOnLocalStorage("email", response.email);
     navigate("/dashboard/projects");
   }
@@ -83,7 +82,6 @@ export async function submitPasskeyLogin(
   const [response, error] = await request.send(LoginResponse);
 
   if (response) {
-    setOnLocalStorage("user_id", String(response.user_id));
     setOnLocalStorage("email", response.email);
     navigate("/dashboard/projects");
   }

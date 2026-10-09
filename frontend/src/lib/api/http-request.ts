@@ -15,7 +15,7 @@ export default class HttpRequest {
     this.apiCallParams = apiCallParams;
   }
 
-  async send<S extends z.ZodObject>(
+  async send<S extends z.ZodType>(
     schema?: S,
   ): Promise<APICallResult<z.infer<S>>> {
     let endpointConfig: RequestParams;

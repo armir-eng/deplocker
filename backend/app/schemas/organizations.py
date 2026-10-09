@@ -14,7 +14,6 @@ class OrganizationRole(Enum):
 
 
 class OrganizationCreate(BaseModel):
-    user_id: int
     name: SluggableName
 
 
@@ -25,3 +24,9 @@ class OrganizationResponse(BaseModel):
     slug: str
     created_at: datetime
     updated_at: datetime
+
+
+class OrganizationSummary(BaseModel):
+    id: uuid.UUID
+    name: str
+    slug: str

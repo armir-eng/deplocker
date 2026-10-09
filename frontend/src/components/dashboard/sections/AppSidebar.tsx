@@ -19,7 +19,7 @@ import {
 } from "@/components/shadcn/sidebar";
 import useAPIOnMount from "@/lib/hooks/api";
 import { getFromLocalStorage } from "@/lib/utils/local-storage";
-import { UserOrgs } from "@/schemas/organizations";
+import { OrganizationSummaries } from "@/schemas/organizations";
 import { AddPasskeyForm } from "@/components/auth/AddPasskey";
 import {
   ChevronsUpDown,
@@ -35,15 +35,12 @@ import { logoutUser } from "@/lib/utils/auth";
 export default function AppSidebar() {
   const { isMobile, setOpenMobile } = useSidebar();
   const navigate = useNavigate();
-  const [user_id] = useState<string | null>(() => {
-    return getFromLocalStorage("user_id");
-  });
   const [email] = useState<string | null>(() => {
     return getFromLocalStorage("email");
   });
 
-  const [response] = useAPIOnMount(`${API_URL}/orgs/${user_id}`, UserOrgs);
-  const organizations: string[] = response?.organizations ?? [];
+  const [response] = useAPIOnMount(`${API_URL}/orgs`, OrganizationSummaries);
+  const organizations = response ?? [];
 
   return (
     <Sidebar variant="floating" collapsible="icon">
@@ -57,7 +54,7 @@ export default function AppSidebar() {
                     src="/deplocker.png"
                     className="size-8 rounded-md object-contain"
                   />
-                  <span className="truncate">{organizations[0]}</span>
+                  <span className="truncate">{organizations[0]?.name}</span>
                   <ChevronsUpDown className="ml-auto" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
@@ -66,9 +63,9 @@ export default function AppSidebar() {
                 align="start"
                 className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
               >
-                {organizations.map((org, index) => (
-                  <DropdownMenuItem key={index}>
-                    <span>{org}</span>
+                {organizations.map((organization) => (
+                  <DropdownMenuItem key={organization.id}>
+                    <span>{organization.name}</span>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>

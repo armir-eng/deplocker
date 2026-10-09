@@ -46,6 +46,9 @@ export const parameterLessEndpoints: Record<string, RequestParams> = {
       ...jsonPayloadHeader,
     },
   },
+  [`${API_URL}/orgs`]: {
+    method: "GET",
+  },
 };
 
 export const parameteredEndpoints: Record<string, RequestParams> = {
@@ -66,9 +69,6 @@ export const parameteredEndpoints: Record<string, RequestParams> = {
   },
   [`${API_URL}/auth/logout`]: {
     method: "POST",
-  },
-  [`${API_URL}/orgs/:userID`]: {
-    method: "GET",
   },
 };
 

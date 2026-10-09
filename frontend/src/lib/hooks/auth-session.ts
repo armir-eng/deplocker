@@ -20,8 +20,7 @@ export default function useCheckAuthSession() {
       const [response, error] = await request.send(LoginResponse);
 
       if (response) {
-        if (!getFromLocalStorage("user_id")) {
-          setOnLocalStorage("user_id", String(response.user_id));
+        if (!getFromLocalStorage("email")) {
           setOnLocalStorage("email", response.email);
         }
         setIsSessionActive(true);
