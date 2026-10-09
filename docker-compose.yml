@@ -33,11 +33,15 @@ services:
       redis-stack:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8080/health"]
+      # -f: /health answers 503 when the database or cache is unreachable
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 5s
       retries: 5
       start_period: 30s
+      # Probe often while starting, so `up --wait` returns once api is ready
+      # instead of after the first 30s interval
+      start_interval: 2s
 
   postgres:
     image: postgres:18.1

@@ -229,19 +229,31 @@ clean-dev:
 build-dev:
 	$(MAKE) $(BUILD_DEV_STAMP)
 
+# $(1) = frontend origin, passed to api as DEV_FRONTEND_URL
+#
+# Same --wait guard as deploy-cd: fails as soon as api exits or turns unhealthy,
+# so the dev server never starts in front of a dead backend. The tail of api's
+# log is printed on failure, since compose itself only reports the exit code.
+define start_dev_backend
+	DEV_FRONTEND_URL='$(1)' $(DC) -f $(COMPOSE_DEV_FILE) up -d \
+		--wait \
+		--wait-timeout 180 \
+	|| { $(DC) -f $(COMPOSE_DEV_FILE) logs --tail 30 api; exit 1; }
+endef
+
 ## Start only backend as containers in the foreground.
 ## The `DEV_FRONTEND_URL` environment variable is passed to the api container
 ## This way, it can redirect to the frontend dev server.
 ## In this , the frontend will have the hot reloading capability, enabling real-time testing of changes,
 ## without rebuilding the image.
 start-dev: $(BUILD_DEV_STAMP)
-	DEV_FRONTEND_URL='http://localhost:5173' $(DC) -f $(COMPOSE_DEV_FILE) up -d && \
+	$(call start_dev_backend,http://localhost:5173)
 	cd frontend && API_URL='http://localhost:8080' npm run dev
 
 ## Same stack, served over TLS on the lvh.me test domain (mkcert certificates in
 ## ./frontend), so the browser runs a real passkey ceremony against RP ID lvh.me.
 start-dev-https: $(BUILD_DEV_STAMP)
-	DEV_FRONTEND_URL='https://lvh.me:5173' $(DC) -f $(COMPOSE_DEV_FILE) up -d && \
+	$(call start_dev_backend,https://lvh.me:5173)
 	cd frontend && DEV_HTTPS=1 API_URL='https://lvh.me:5173/api' npm run dev
 
 stop-dev:
