@@ -30,6 +30,11 @@ export const RegisterResponse = z.object({
   email_task_id: z.uuid("Invalid UUID format"),
 });
 
+export const ResendConfirmationResponse = z.object({
+  message: z.string().min(1),
+  email_task_id: z.uuid("Invalid UUID format"),
+});
+
 export const LoginRequest = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
