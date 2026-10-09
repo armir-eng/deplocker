@@ -29,6 +29,10 @@ COMPOSE_TEST_FILE  = docker-compose.test.yml
 BUILD_DEV_STAMP    = .build-dev.stamp
 FRONTEND_MODULES   = $(FRONTEND)/node_modules
 
+# Build the schema from migrations, then fail if the models describe anything
+# the migrations do not. Shared by CI and the pre-commit hook.
+MIGRATIONS_CHECK   = uv run alembic upgrade head && uv run alembic check
+
 # Registry coordinates for the published images. IMAGE_OWNER and IMAGE_SHA are
 # supplied by CI from the GitHub context.
 REGISTRY          ?= ghcr.io
@@ -72,7 +76,7 @@ endef
 # --- Local development -------------------------------------------------------
 
 .PHONY: backend-install-local backend-clean-local backend-reformat \
-        backend-run-local backend-stop-local
+        backend-run-local backend-stop-local backend-migrations-local
 
 ## Install the locked Python dependencies into backend/.venv
 backend-install-local:
@@ -98,6 +102,17 @@ backend-run-local:
 backend-stop-local:
 	$(DC) -f $(COMPOSE_DEV_FILE) down
 
+## The CI migrations check, run before committing. Its own project name keeps it
+## clear of a CI run's stack. Teardown runs whatever the outcome: a surviving
+## database would keep the schema, and the next run would check against it
+## instead of building it from empty.
+backend-migrations-local:
+	$(DC) -p deplocker-migrations -f $(COMPOSE_TEST_FILE) run --rm --build api \
+		sh -c "$(MIGRATIONS_CHECK)"; \
+	status=$$?; \
+	$(DC) -p deplocker-migrations -f $(COMPOSE_TEST_FILE) down -v --remove-orphans; \
+	exit $$status
+
 
 # --- CI / CD -----------------------------------------------------------------
 
@@ -113,7 +128,7 @@ backend-lint-ci:
 ## models describe anything the migrations do not
 backend-migrations-ci:
 	$(DC) -f $(COMPOSE_TEST_FILE) run --rm --build api \
-		sh -c "uv run alembic upgrade head && uv run alembic check"
+		sh -c "$(MIGRATIONS_CHECK)"
 
 ## Run the test suite in containers; exit with the api container's status
 backend-test-ci:
