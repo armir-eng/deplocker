@@ -24,4 +24,4 @@ RUN uv sync --frozen --no-dev
 COPY . .
 EXPOSE 8080
 ENTRYPOINT ["sh", "./scripts/entrypoint.sh" ]
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uv", "run", "--no-sync", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

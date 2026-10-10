@@ -34,8 +34,8 @@ passkey.
 
 ## Architecture
 
-Five services make up the stack in [docker-compose.yml](docker-compose.yml). In
-production, [docker-compose.prod.yml](docker-compose.prod.yml) puts a sixth,
+Six services make up the stack in [docker-compose.yml](docker-compose.yml). In
+production, [docker-compose.prod.yml](docker-compose.prod.yml) puts a seventh,
 Caddy, in front of them:
 
 ```mermaid
@@ -43,7 +43,8 @@ flowchart LR
     browser(["Browser"])
     caddy{{"caddy<br/>HTTPS · production"}}
     ui["ui<br/>nginx · React"]
-    api["api<br/>FastAPI · Celery worker"]
+    api["api<br/>FastAPI"]
+    worker["worker<br/>Celery"]
     postgres[("postgres")]
     redis[("redis-stack")]
     rabbitmq[["rabbitmq"]]
@@ -53,13 +54,16 @@ flowchart LR
     caddy -->|API calls| api
     api --> postgres
     api --> redis
-    api <--> rabbitmq
+    api -->|jobs| rabbitmq
+    rabbitmq -->|jobs| worker
+    worker -->|results| redis
 ```
 
 | Service | Role | Host port |
 | --- | --- | --- |
 | `caddy` | The server's web server, in production only. It holds the certificates for the web app's and the API's domains and hands each request to the right container | `80`, `443` |
-| `api` | The REST API ([FastAPI](https://fastapi.tiangolo.com/)), and a [Celery](https://docs.celeryq.dev/) worker for background jobs such as confirmation emails | `127.0.0.1:8080`, in development only |
+| `api` | The REST API ([FastAPI](https://fastapi.tiangolo.com/)) | `127.0.0.1:8080`, in development only |
+| `worker` | A [Celery](https://docs.celeryq.dev/) worker for background jobs such as confirmation emails, run from the `api` image | none |
 | `ui` | The web app (React, Vite, Tailwind), served by nginx | `8082`, in development only |
 | `postgres` | The main database | `5435` |
 | `redis-stack` | Login sessions and background job results | `6380` |

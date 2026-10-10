@@ -77,7 +77,7 @@ A membership's role ranks `OWNER` over `ADMIN` over `MEMBER`, each holding the p
 
 ### Celery / async tasks
 
-`app/tasks/celery_app.py` configures Celery with RabbitMQ as the broker and Redis as the result backend. Currently the only task is `send_confirmation_email` in `app/tasks/account_confirmation.py`. After dispatching a task, the API returns a `task_id` which the frontend polls via `GET /tasks/{task_id}` until `SUCCESS` or `FAILURE`.
+`app/tasks/celery_app.py` configures Celery with RabbitMQ as the broker and Redis as the result backend. The worker runs as the `worker` Compose service, from the api image and without its migration step. Currently the only task is `send_confirmation_email` in `app/tasks/account_confirmation.py`. After dispatching a task, the API returns a `task_id` which the frontend polls via `GET /tasks/{task_id}` until `SUCCESS` or `FAILURE`.
 
 ### Redis
 

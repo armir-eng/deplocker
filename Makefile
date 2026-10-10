@@ -312,8 +312,9 @@ publish-ci: backend-publish-ci frontend-publish-ci
 ##
 ## Deliberately not `start-prod`: that depends on $(BUILD_DEV_STAMP), which
 ## would rebuild `ui` with the dev stack's localhost API_URL and overwrite the
-## image built with FRONTEND_API_URL. Both services are `pull_policy: never`,
-## so this reuses the local :latest images and never reaches the registry.
+## image built with FRONTEND_API_URL. `api`, `worker` and `ui` are
+## `pull_policy: never`, so this reuses the local :latest images and never
+## reaches the registry.
 ##
 ## --wait blocks until api reports healthy and fails the job if it does not.
 ## `up` leaves an unchanged caddy container running, so the reload applies the
