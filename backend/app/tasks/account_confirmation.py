@@ -5,7 +5,7 @@ from email.message import EmailMessage
 
 from app.core import settings
 from app.tasks.celery_app import celery_app
-from app.utils.templates import get_template
+from app.utils.email.templates import get_template
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +18,7 @@ def send_confirmation_email(receiver_address: str, token: str) -> str:
     message["To"] = receiver_address
     message["Subject"] = "Deplocker account activation request"
 
-    confirmation_url = (
-        f"{settings.FRONTEND_URL}/account/confirm?email={receiver_address}&token={token}"
-    )
+    confirmation_url = f"{settings.FRONTEND_URL}/account/confirm?email={receiver_address}&token={token}"
     context_data = {"confirmation_url": confirmation_url}
     html_content = get_template(
         "account_confirmation_email.html", context_data=context_data

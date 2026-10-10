@@ -27,10 +27,11 @@ services:
       POSTGRES_DB: deplocker
       TEST_DB: deplocker_test
 
-      # Application
       ENVIRONMENT: dev
       DEV_FRONTEND_URL: http://localhost:5173
       PROD_FRONTEND_URL: https://deplocker.armir.dev
+      DEV_PUBLIC_URL: http://localhost:8080
+      PROD_PUBLIC_URL: https://api.deplocker.armir.dev
 
       # JWT — throwaway value; only email-confirmation links are signed with it.
       SECRET_KEY: 379afe51b95194f76028340e1ab89cc309cd52e9a1d018f986bc3e857257471d
@@ -54,13 +55,21 @@ services:
       SMTP_PORT: 587
       SENDER_EMAIL_ADDRESS: deplocker@example.com
       EMAIL_HOST_PASSWORD: gmail_app_password
-    
-      # Google OAuth configuration parameters
+
+      # Google OAuth2 — placeholders; the tests mock the provider.
       GOOGLE_CLIENT_ID: your-client-id.apps.googleusercontent.com
       GOOGLE_CLIENT_SECRET: your-client-secret
       GOOGLE_AUTH_URL: https://accounts.google.com/o/oauth2/auth
       GOOGLE_TOKEN_URL: https://oauth2.googleapis.com/token
-      GOOGLE_USER_INFO_URL: https://www.googleapis.com/oauth2/v3/userinfo 
+      GOOGLE_USER_INFO_URL: https://www.googleapis.com/oauth2/v3/userinfo
+
+      # GitHub OAuth2 — placeholders; the tests mock the provider.
+      GITHUB_CLIENT_ID: your-github-client-id
+      GITHUB_CLIENT_SECRET: your-github-client-secret
+      GITHUB_AUTH_URL: https://github.com/login/oauth/authorize
+      GITHUB_TOKEN_URL: https://github.com/login/oauth/access_token
+      GITHUB_USER_INFO_URL: https://api.github.com/user
+      GITHUB_USER_EMAILS_URL: https://api.github.com/user/emails
     depends_on:
       ci-postgres:
         condition: service_healthy

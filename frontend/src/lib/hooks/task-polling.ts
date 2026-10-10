@@ -1,22 +1,24 @@
 import { useEffect } from "react";
 import { RESET } from "jotai/utils";
 import { toast } from "react-toastify";
-import APIClient from "../api/api-client";
+import HttpRequest from "../api/http-request";
 import { TaskStatusPollResponse } from "@/schemas/tasks";
 
 export default function useTaskStatusPolling(
   taskID: string | null,
-  setTaskID: (update: React.SetStateAction<string | null> | typeof RESET) => void,
+  setTaskID: (
+    update: React.SetStateAction<string | null> | typeof RESET,
+  ) => void,
   successMessage: string,
   failureMessage: string,
 ) {
   useEffect(() => {
     if (taskID) {
       const endpointURL = `${API_URL}/tasks/${taskID}`;
-      const apiClient = new APIClient(endpointURL);
+      const request = new HttpRequest(endpointURL);
 
       const intervalID = setInterval(async () => {
-        const [response, error] = await apiClient.call(TaskStatusPollResponse);
+        const [response, error] = await request.send(TaskStatusPollResponse);
 
         if (response) {
           if (response.status === "SUCCESS") {

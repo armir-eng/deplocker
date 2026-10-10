@@ -2,11 +2,11 @@ import { toast } from "react-toastify";
 import { resolveEndpointConfig } from "./endpoints-map";
 import { networkErrorToasterMessage } from "@/globals";
 import { APICallParams, RequestParams } from "./types";
-import { AnyObjectSchema, InferType, ValidationError } from "yup";
+import * as z from "zod";
 
 export type APICallResult<T> = [T | null, string | null];
 
-export default class APIClient {
+export default class HttpRequest {
   endpointURL: string;
   apiCallParams?: APICallParams;
 
@@ -15,9 +15,9 @@ export default class APIClient {
     this.apiCallParams = apiCallParams;
   }
 
-  async call<S extends AnyObjectSchema>(
+  async send<S extends z.ZodType>(
     schema?: S,
-  ): Promise<APICallResult<InferType<S>>> {
+  ): Promise<APICallResult<z.infer<S>>> {
     let endpointConfig: RequestParams;
 
     try {
@@ -29,13 +29,11 @@ export default class APIClient {
 
     const init: RequestInit = {
       method: endpointConfig.method,
+      credentials: endpointConfig.public ? "same-origin" : "include",
     };
 
     if (endpointConfig.headers) {
       init.headers = endpointConfig.headers;
-    }
-    if (endpointConfig.authenticationRequired) {
-      init.credentials = "include";
     }
 
     const requestPayload = this.apiCallParams?.body;
@@ -56,13 +54,13 @@ export default class APIClient {
 
       if (schema) {
         try {
-          const validated = await schema.validate(data, { stripUnknown: true });
+          const validated = await schema.parseAsync(data);
           return [validated, null];
         } catch (error) {
-          if (error instanceof ValidationError) {
-            return [null, `Invalid response shape: ${error.message}`];
+          if (error instanceof z.ZodError) {
+            return [null, `Invalid response shape: ${z.prettifyError(error)}`];
           }
-          throw error; // Rethrow any unexpected issue
+          throw error;
         }
       }
 

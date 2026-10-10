@@ -20,7 +20,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public pages - no authentication check */}
+        {/* Public pages */}
         <Route
           path="/login"
           element={
@@ -34,7 +34,7 @@ export default function App() {
         <Route path="/register" element={<SignupForm />} />
         <Route path="/account/confirm" element={<ActivateAccount />} />
 
-        {/* Protected pages - wrapped with authentication context provider */}
+        {/* Protected pages: a visitor without a session is sent to /login */}
         <Route
           element={
             <AuthProvider>

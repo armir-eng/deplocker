@@ -1,4 +1,4 @@
-import { InferType } from "yup";
+import * as z from "zod";
 import {
   Card,
   CardContent,
@@ -14,22 +14,14 @@ import {
   FieldLabel,
 } from "@/components/shadcn/field";
 import { Input } from "@/components/shadcn/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../shadcn/select";
 import { useForm, Controller } from "react-hook-form";
 import {
   RegisterRequest,
   RegisterResponse,
   UsernameAvailabilty,
 } from "@/schemas/auth";
-import { yupResolver } from "@hookform/resolvers/yup";
-import APIClient from "@/lib/api/api-client";
+import { zodResolver } from "@hookform/resolvers/zod";
+import HttpRequest from "@/lib/api/http-request";
 import { toast } from "react-toastify";
 import { useAtom } from "jotai";
 import { emailTaskIDAtom } from "@/store/auth.atoms";
@@ -40,7 +32,7 @@ import {
 } from "../../constants/auth";
 import { useEffect, useState } from "react";
 import { Button } from "../shadcn/button";
-import GoogleIcon from "./GoogleIcon";
+import GoogleIcon from "@/lib/icons/GoogleIcon";
 import { Eye, EyeOff } from "lucide-react";
 
 export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
@@ -50,13 +42,12 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   );
   const [showPassword, setShowPassword] = useState(false);
 
-  const form = useForm<InferType<typeof RegisterRequest>>({
-    resolver: yupResolver(RegisterRequest),
+  const form = useForm<z.infer<typeof RegisterRequest>>({
+    resolver: zodResolver(RegisterRequest),
     defaultValues: {
       username: "",
       email: "",
       full_name: "",
-      role: "user",
       password: "",
       confirm_password: "",
     },
@@ -65,16 +56,16 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   // react-hook-form's watch() cannot be memoized by the React Compiler; this is
   // the documented way to observe a field value.
   // eslint-disable-next-line react-hooks/incompatible-library
-  const username = form.watch("username"); // Track the username field value
+  const username = form.watch("username");
 
   useEffect(() => {
-    setUsernameAvailable(null); // Remove the availability message before the check request
+    setUsernameAvailable(null);
     if (!username || username.length < 3) return;
     const timer = setTimeout(async () => {
-      const apiClient = new APIClient(
+      const request = new HttpRequest(
         `${API_URL}/auth/check-username?username=${username}`,
       );
-      const [result, error] = await apiClient.call(UsernameAvailabilty);
+      const [result, error] = await request.send(UsernameAvailabilty);
       if (result) {
         setUsernameAvailable(result.available);
       }
@@ -96,21 +87,19 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
 
   const onToggglePasswordVisibility = () => {
     setShowPassword((prevState) => !prevState);
-  }
+  };
 
-  const onSubmit = async (data: InferType<typeof RegisterRequest>) => {
+  const onSubmit = async (data: z.infer<typeof RegisterRequest>) => {
     const endpointURL = `${API_URL}/auth/register`;
 
-    // Field is not expected in the payload to the signup (register) endpoint.
-    // It is only used for client-side form validation.
-    // This way, we delete it from the object.
+    // Checked client-side only; the register endpoint doesn't take it
     delete data["confirm_password"];
 
-    const apiClient = new APIClient(endpointURL, {
+    const request = new HttpRequest(endpointURL, {
       body: data,
     });
 
-    const [response, error] = await apiClient.call(RegisterResponse);
+    const [response, error] = await request.send(RegisterResponse);
     if (response) {
       toast.info(response.message);
       setEmailTaskID(response.email_task_id);
@@ -220,27 +209,6 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 )}
               />
               <Controller
-                name="role"
-                control={form.control}
-                defaultValue="admin"
-                render={({ field }) => (
-                  <Field>
-                    <FieldLabel htmlFor="role">Role</FieldLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="user">User</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                )}
-              />
-              <Controller
                 name="password"
                 control={form.control}
                 render={({ field, fieldState }) => (
@@ -329,7 +297,11 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                   <Button type="submit" className="cursor-pointer">
                     Create Account
                   </Button>
-                  <Button variant="outline" type="button" className="cursor-pointer">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    className="cursor-pointer"
+                  >
                     <GoogleIcon /> Sign up with Google
                   </Button>
                   <FieldDescription className="px-6 text-center">
