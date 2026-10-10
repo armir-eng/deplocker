@@ -29,7 +29,8 @@ COMPOSE_TEST_FILE  = docker-compose.test.yml
 
 # The server's configuration, which also supplies Caddy's site addresses
 PROD_ENV_FILE      = /etc/deplocker/.env
-DC_PROD            = $(DC) -f $(COMPOSE_DEV_FILE) -f $(COMPOSE_PROD_FILE) \
+# Pins the stack to the images CI built from IMAGE_SHA
+DC_PROD            = IMAGE_TAG=$(IMAGE_SHA) $(DC) -f $(COMPOSE_DEV_FILE) -f $(COMPOSE_PROD_FILE) \
                      --env-file $(PROD_ENV_FILE) --profile frontend
 
 BUILD_DEV_STAMP    = .build-dev.stamp
@@ -55,18 +56,22 @@ FRONTEND_API_URL  ?=
 # GHCR rejects uppercase path segments, but the owner keeps the account casing.
 REGISTRY_NS        = $(REGISTRY)/$(shell echo '$(IMAGE_OWNER)' | tr '[:upper:]' '[:lower:]')
 
-# $(1) = local image name, tagged :latest by the corresponding *-build-ci target
+# $(1) = local image name, tagged :$(IMAGE_SHA) by the corresponding *-build-ci target
 define publish_image
-	$(D) tag $(1):latest $(REGISTRY_NS)/$(1):$(IMAGE_SHA)
-	$(D) tag $(1):latest $(REGISTRY_NS)/$(1):latest
+	$(D) tag $(1):$(IMAGE_SHA) $(REGISTRY_NS)/$(1):$(IMAGE_SHA)
+	$(D) tag $(1):$(IMAGE_SHA) $(REGISTRY_NS)/$(1):latest
 	$(D) push $(REGISTRY_NS)/$(1):$(IMAGE_SHA)
 	$(D) push $(REGISTRY_NS)/$(1):latest
 	$(D) rmi $(REGISTRY_NS)/$(1):$(IMAGE_SHA) $(REGISTRY_NS)/$(1):latest
 endef
 
+define require_image_sha
+	@test -n "$(IMAGE_SHA)" || { echo "IMAGE_SHA is required"; exit 1; }
+endef
+
 define require_registry_vars
 	@test -n "$(IMAGE_OWNER)" || { echo "IMAGE_OWNER is required"; exit 1; }
-	@test -n "$(IMAGE_SHA)"   || { echo "IMAGE_SHA is required";   exit 1; }
+	$(require_image_sha)
 endef
 
 
@@ -150,10 +155,11 @@ backend-clean-ci:
 ## Build the shippable image from the production stage, which installs without
 ## dev dependencies and starts uvicorn directly (no --reload, no bind mount).
 backend-build-ci:
-	$(D) build --target production -t $(API_IMAGE):latest $(BACKEND)
+	$(require_image_sha)
+	$(D) build --target production -t $(API_IMAGE):$(IMAGE_SHA) $(BACKEND)
 
 ## Tag and push the built image, then drop the registry tags so only the local
-## `:latest` is left behind on the runner.
+## `:$(IMAGE_SHA)` is left behind on the runner, for deploy-cd.
 backend-publish-ci:
 	$(require_registry_vars)
 	$(call publish_image,$(API_IMAGE))
@@ -213,10 +219,11 @@ frontend-test-ci: $(FRONTEND_MODULES)
 ## Build the shippable image. The dev stack bakes a localhost API_URL, so that
 ## image is never publishable; FRONTEND_API_URL has to be the production one.
 frontend-build-ci:
+	$(require_image_sha)
 	@test -n "$(FRONTEND_API_URL)" || { echo "FRONTEND_API_URL is required"; exit 1; }
 	$(D) build --target runtime \
 		--build-arg API_URL=$(FRONTEND_API_URL) \
-		-t $(UI_IMAGE):latest $(FRONTEND)
+		-t $(UI_IMAGE):$(IMAGE_SHA) $(FRONTEND)
 
 ## Tag and push the built image, then drop the registry tags
 frontend-publish-ci:
@@ -313,13 +320,14 @@ publish-ci: backend-publish-ci frontend-publish-ci
 ## Deliberately not `start-prod`: that depends on $(BUILD_DEV_STAMP), which
 ## would rebuild `ui` with the dev stack's localhost API_URL and overwrite the
 ## image built with FRONTEND_API_URL. `api`, `worker` and `ui` are
-## `pull_policy: never`, so this reuses the local :latest images and never
-## reaches the registry.
+## `pull_policy: never`, so this runs the local images `ci` built from
+## IMAGE_SHA and never reaches the registry.
 ##
 ## --wait blocks until api reports healthy and fails the job if it does not.
 ## `up` leaves an unchanged caddy container running, so the reload applies the
 ## checked-out Caddyfile; Caddy skips it when the file is unchanged.
 deploy-cd:
+	$(require_image_sha)
 	$(DC_PROD) up -d \
 		--wait \
 		--wait-timeout 180 \

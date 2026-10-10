@@ -2,8 +2,9 @@
 # is the server's web server: it owns ports 80 and 443 and is the only way in to
 # the web app and the API, which publish no host ports here.
 #
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
-#       --env-file /etc/deplocker/.env --profile frontend up -d
+#   IMAGE_TAG=<commit SHA> docker compose -f docker-compose.yml \
+#       -f docker-compose.prod.yml --env-file /etc/deplocker/.env \
+#       --profile frontend up -d
 
 services:
 

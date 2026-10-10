@@ -228,10 +228,10 @@ runner, which is also the production server.
    Registry, tagged with the commit SHA and `latest`.
 
 **Deploy to production** (`cd` job) runs on `master` only, once `ci` has
-succeeded. It restarts the stack on the images `ci` just built on the same
-machine, then gives the API up to three minutes to report healthy, failing the
-job otherwise. Last, it reloads Caddy with the commit's Caddyfile, which Caddy
-applies without a restart.
+succeeded. It restarts the stack on the images `ci` built from the same commit
+on the same machine, then gives the API up to three minutes to report healthy,
+failing the job otherwise. Last, it reloads Caddy with the commit's Caddyfile,
+which Caddy applies without a restart.
 
 No application secret passes through the workflow: the server's configuration
 lives in `/etc/deplocker/.env`, written by hand. Its `PROD_FRONTEND_URL` and
