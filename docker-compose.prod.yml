@@ -35,6 +35,8 @@ services:
 
   api:
     ports: !reset []
+    # Kept out of docker-compose.yml, so `make start-dev` fails as soon as api exits
+    restart: unless-stopped
 
   ui:
     ports: !reset []

@@ -70,6 +70,7 @@ services:
       - "15672:15672" # Management UI port
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
 
   redis-stack:
     image: redis/redis-stack:latest
@@ -79,6 +80,7 @@ services:
       - "6380:6379"
     volumes:
       - redis_data:/data
+    restart: unless-stopped
     command: ["sh", "-c", "redis-stack-server --requirepass $$REDIS_PASSWORD"]
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping"]
