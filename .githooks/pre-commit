@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Lint the components touched by the staged files, as CI does.
-# This avoids dealing with linting phase errors in the CI pipeline
+# Lint the components touched by the staged files, as CI does
 if ! make lint-ci; then
     cat >&2 <<'EOF'
 

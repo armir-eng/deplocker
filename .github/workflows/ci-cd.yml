@@ -6,9 +6,6 @@ on:
       - '**'
 
 jobs:
-  #---------------------------------------
-  # CI: Runs on every push
-  #---------------------------------------
   ci:
     name: Build & Test
     runs-on: self-hosted
@@ -99,13 +96,9 @@ jobs:
             IMAGE_SHA=${{github.sha}}
 
   cd:
-    #-----------------------------------------------
-    # CD: Runs on every push to the master branch
-    #-----------------------------------------------
     name: Deploy to production
     runs-on: self-hosted
-    # `needs` is what makes this a gate: without it the job would start in
-    # parallel with ci and could deploy a commit whose tests never passed.
+    # Deploys only a commit whose ci job passed
     needs: ci
     if: github.ref == 'refs/heads/master'
     permissions:

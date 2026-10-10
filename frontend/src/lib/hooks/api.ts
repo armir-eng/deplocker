@@ -4,10 +4,8 @@ import * as z from "zod";
 import { toast } from "react-toastify";
 import { APICallParams } from "../api/types";
 
-// This hook helps in components that render API-provided data in their default state (on mount).
-// It runs on very first component render, and makes sure the data are immediately fetched.
-// Then, the result is combined with a dedicated state varibale to store those data.
-// It efficiently uses the HttpRequest interface, exposing only the result of it, and reducing a considerable amount of boilerplate coming from directly instantiating and consuming it.
+// Calls an endpoint once, on mount, and returns its validated response and its
+// error, which is also shown as a toast
 export default function useAPIOnMount<S extends z.ZodType>(
   endpointURL: string,
   responseSchema: S,

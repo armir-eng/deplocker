@@ -1,7 +1,6 @@
 #!/bin/sh
 
-# Refuse direct pushes to master.  Install once per clone:
-#     git config core.hooksPath .githooks
+# Refuse direct pushes to master
 
 # Git sends one line per ref: <local ref> <local sha> <remote ref> <remote sha>
 while read -r _ _ remote_ref _; do

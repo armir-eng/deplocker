@@ -48,12 +48,8 @@ async def _add_default_organization(db_session: AsyncSession, user: UserModel) -
 async def _login_response[R: (JSONResponse, RedirectResponse)](
     db_user: UserModel, response: R
 ) -> R:
-    """
-    Creates a session for the user and sets a cookie in the response.
-    The response can be either a:
-    - JSONResponse -> For internal API login.
-    - RedirectResponse -> For OAuth2 login flow, where the user is redirected to the frontend after login.
-    """
+    """Opens a session for the user and sets its cookie on `response`: JSON for
+    password and passkey logins, a redirect to the frontend for OAuth2."""
     session_data = SessionData(
         user_id=db_user.id,
         username=db_user.username,
@@ -138,14 +134,14 @@ async def get_or_create_oauth_user(
     full_name: str | None,
     username_hint: str,
 ) -> UserModel:
-    """Resolve the provider's account to a local user, provisioning one if needed.
+    """Resolve the provider's account to a local user, creating one if needed.
 
-    Lookup and insert are separate statements, so uniqueness is enforced by the
-    database, not here: a concurrent callback for the same email inserts between
-    them and the flush fails with an `IntegrityError`. `users.username` and the
-    default organization's `slug` are unique too, so their races raise the
-    same error — but the recovery only re-reads by email, turning those into a 409
-    the caller could have retried. The logged constraint name tells them apart.
+    The database, not the lookup, enforces uniqueness: when a concurrent callback
+    creates the same user first, the insert raises `IntegrityError` and that
+    user is returned instead. A clash on the username or the default
+    organization's slug raises the same error but leaves no user to return, so
+    it ends in a 409 a retry would avoid; the logged constraint name tells these
+    cases apart.
     """
     db_user: UserModel | None = await db_session.scalar(
         select(UserModel).where(UserModel.email == email)
@@ -168,7 +164,6 @@ async def get_or_create_oauth_user(
         await _add_default_organization(db_session, new_user)
         await db_session.commit()
     except IntegrityError:
-        # A concurrent callback for the same account won the race.
         await db_session.rollback()
         db_user = await db_session.scalar(
             select(UserModel).where(UserModel.email == email)

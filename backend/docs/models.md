@@ -133,9 +133,10 @@ erDiagram
 
 One row per account. `username` and `email` are each unique.
 
-- `is_active` is false until the user confirms their email address, and a
-  user cannot sign in before then. Accounts created through Google or GitHub
-  start active, because the provider has already verified the address.
+- `is_active` is false until the user confirms their email address, and until
+  then the user cannot sign in with a password or a passkey. Accounts created
+  through Google or GitHub start active, because the provider has already
+  verified the address.
 - `password` holds a hash, never the password itself. Accounts created through
   Google or GitHub get a hash of a random value, so they have no usable
   password.

@@ -60,7 +60,7 @@ async def test_get_application_by_id(
         assert schema_object.env_vars == new_application_data["env_vars"]
         assert schema_object.domain == new_application_data["domain"]
 
-        # Assert the default values (intentionally not provided in the request payload)
+        # Defaults for the fields the payload leaves out
         assert schema_object.branch == "main"
         assert schema_object.dockerfile_path == "./Dockerfile"
         assert schema_object.port == 8000

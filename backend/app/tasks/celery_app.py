@@ -9,5 +9,4 @@ celery_app.conf.broker_url = (
 )
 celery_app.conf.result_backend = f"redis://default:{settings.REDIS_PASSWORD}@{settings.REDIS_HOST}:{settings.REDIS_PORT}/0"
 
-# Auto-discover tasks from all modules
 celery_app.autodiscover_tasks(["app.tasks"])

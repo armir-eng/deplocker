@@ -40,9 +40,8 @@ class UserModel(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     last_login: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
-    # This field indicates the verification status of a registered user.
-    # Before account's confirmation, the user's identity is not presumably trusted.
-    # Through an email verification step, the registration is fully completed.
+    # True once the email address is confirmed. Password and passkey logins
+    # require it.
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
 
     organizations: Mapped[list["OrganizationModel"]] = relationship(  # type: ignore[name-defined]

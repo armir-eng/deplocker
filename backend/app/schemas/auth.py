@@ -6,10 +6,11 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
+# A user's platform-wide role; their role in an organization is an OrganizationRole
 class UserRole(Enum):
-    OWNER = "owner"  # dedicated for platform-level operators (owners or administrators)
-    ADMIN = "admin"  # dedicated for organization-level operators (admins or managers)
-    USER = "user"  # the majority of users (who merely use the platform for their needs)
+    OWNER = "owner"  # Operates the platform
+    ADMIN = "admin"  # Manages organizations
+    USER = "user"
 
 
 class UserBase(BaseModel):

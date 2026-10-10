@@ -18,8 +18,8 @@ export function MenuContextProvider({
 }) {
   const { menu } = useParams();
 
-  // The active menu is derived directly from the URL param, which is the single
-  // source of truth. An invalid param renders the error page.
+  // The URL param alone decides the active menu; an invalid one renders the
+  // error page.
   let activeMenu: z.infer<typeof DashboardMenu>;
   try {
     activeMenu = DashboardMenu.parse(menu);

@@ -1,4 +1,3 @@
-# app/utils/google_oauth.py
 import logging
 from typing import Any
 
@@ -19,7 +18,7 @@ async def _google_request(
         payload: dict[str, Any] = resp.json()
         return payload
     except httpx.HTTPStatusError as exc:
-        # Google reachable but rejected us (bad code, redirect mismatch, etc.)
+        # Reachable, but rejected: bad code, redirect mismatch
         logger.warning(
             "Google API %s %s -> %s: %s",
             method,

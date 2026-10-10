@@ -1,39 +1,68 @@
 # Deplocker
 
-Deplocker is a self-hosted platform for deploying containerized applications.
-You describe an application once (its Git repository, branch, Dockerfile, port,
-environment variables and domain), and Deplocker is meant to build it and run
-it on your own server.
+**Unlock your deployments.**
 
-Today it covers everything around that step: accounts, organizations,
-projects, application configuration and deployment records. The pipeline that
-clones, builds and runs an application is not implemented yet.
+Deplocker is a self-hosted platform for running containerized applications on a
+server of your own. Describe an application once (where its code lives, which
+branch to follow, the Dockerfile that builds it, the port it listens on, its
+environment and its domain) and Deplocker is meant to carry it the rest of the
+way, from a commit to a running container.
 
-- **Organizations** group users. Each member has a role: *owner*, *admin* or
-  *member*.
-- **Projects** belong to an organization and group its applications.
-- **Applications** hold the configuration needed to build and run one service.
-- **Deployments** record each attempt to ship an application.
+That last stretch is still being paved. What stands today is everything around
+it: accounts and sign-in, organizations and their members, projects,
+application settings, and a record of every deployment. The pipeline that
+clones, builds and runs is the work in progress.
 
-Users sign in with email and password, Google, GitHub, or a passkey.
+## How it fits together
+
+Everything you deploy hangs from a single chain of ownership:
+
+**organization → project → application → deployment**
+
+- An **organization** is where people work together. Every member holds a
+  role: *members* see everything in it and start deployments, *admins* also
+  shape its projects and applications, and *owners* can delete them,
+  deployments included.
+- A **project** gathers related applications.
+- An **application** is a single service: where its code lives and how it runs.
+- A **deployment** is one attempt to ship an application, kept on record.
+
+You sign in with an email and a password, with Google or GitHub, or with a
+passkey.
 
 ---
 
 ## Architecture
 
-The whole stack runs with Docker Compose, defined in
-[docker-compose.yml](docker-compose.yml).
+Five services, one Compose file, [docker-compose.yml](docker-compose.yml):
 
-| Service | What it does | Host port |
+```mermaid
+flowchart LR
+    browser(["Browser"])
+    ui["ui<br/>nginx · React"]
+    api["api<br/>FastAPI · Celery worker"]
+    postgres[("postgres")]
+    redis[("redis-stack")]
+    rabbitmq[["rabbitmq"]]
+
+    browser -->|pages| ui
+    browser -->|API calls| api
+    api --> postgres
+    api --> redis
+    api <--> rabbitmq
+```
+
+| Service | Role | Host port |
 | --- | --- | --- |
-| `api` | REST API ([FastAPI](https://fastapi.tiangolo.com/)) and a [Celery](https://docs.celeryq.dev/) worker for background jobs such as confirmation emails | `127.0.0.1:8080` |
-| `ui` | Web app (React, Vite, Tailwind), served by nginx | `8082` |
-| `postgres` | Main database | `5435` |
+| `api` | The REST API ([FastAPI](https://fastapi.tiangolo.com/)), and a [Celery](https://docs.celeryq.dev/) worker for background jobs such as confirmation emails | `127.0.0.1:8080` |
+| `ui` | The web app (React, Vite, Tailwind), served by nginx | `8082` |
+| `postgres` | The main database | `5435` |
 | `redis-stack` | Login sessions and background job results | `6380` |
-| `rabbitmq` | Queue that hands background jobs to the worker | `5672`, admin UI `15672` |
+| `rabbitmq` | The queue that hands background jobs to the worker | `5672`, admin UI `15672` |
 
-Backend details are in [backend/CLAUDE.md](backend/CLAUDE.md), and the database
-schema in [backend/docs/models.md](backend/docs/models.md).
+The backend's inner workings are described in
+[backend/CLAUDE.md](backend/CLAUDE.md), and its database, table by table, in
+[backend/docs/models.md](backend/docs/models.md).
 
 ---
 
@@ -41,17 +70,17 @@ schema in [backend/docs/models.md](backend/docs/models.md).
 
 ### 1. Install the tools
 
-Docker with Compose v2, GNU Make, [uv](https://docs.astral.sh/uv/) (Python
-package manager) and Node.js with npm.
+You need Docker with Compose v2, GNU Make, [uv](https://docs.astral.sh/uv/) for
+Python, and Node.js with npm.
 
-On Linux, the [dev container](.devcontainer/devcontainer.json) provides all of
-them except Docker, which it uses from the host.
+On Linux, the [dev container](.devcontainer/devcontainer.json) brings all of
+them except Docker, which it borrows from the host.
 
 ### 2. Create the configuration file
 
-Every service reads its settings from `/etc/deplocker/.env`, on development
-machines and on the production server alike. Compose refuses to start if the
-file is missing. Create it from the template and fill in the values:
+Every service reads its settings from one file, `/etc/deplocker/.env`, on your
+machine and on the production server alike. Compose won't start without it.
+Create it from the template, then fill in the values:
 
 ```sh
 sudo install -d -o "$(id -un)" -g "$(id -gn)" -m 0700 /etc/deplocker
@@ -74,36 +103,37 @@ The hooks are described under [Checks](#checks).
 make start-dev
 ```
 
-This builds the images when needed, starts the backend containers in the
-background, and runs the Vite dev server in the foreground, which reloads the
-page as you edit.
+This builds the images if they are out of date, starts the backend containers
+in the background and waits until the API reports healthy, then hands the
+terminal to the Vite dev server, which reloads the page as you edit.
 
 - Web app: <http://localhost:5173>
-- API: <http://localhost:8080>, interactive docs at <http://localhost:8080/docs>
+- API: <http://localhost:8080>, with interactive docs at
+  <http://localhost:8080/docs>
 
-Stop Vite with <kbd>Ctrl</kbd>+<kbd>C</kbd> and the containers with
-`make stop-dev`.
+<kbd>Ctrl</kbd>+<kbd>C</kbd> stops Vite, and `make stop-dev` stops the
+containers.
 
 ### Everyday commands
 
-All commands are [Makefile](Makefile) targets.
+Every command is a [Makefile](Makefile) target.
 
 | Command | What it does |
 | --- | --- |
 | `make start-dev` / `make stop-dev` | Start or stop the development stack |
-| `make start-dev-https` | Same, over HTTPS, for testing passkeys (see below) |
-| `make start-prod` / `make stop-prod` | Run the full stack in containers, web app included, at <http://localhost:8082> |
-| `make backend-reformat` | Format the Python code and fix lint errors |
+| `make start-dev-https` | The same, over HTTPS, for trying passkeys (see below) |
+| `make start-prod` / `make stop-prod` | Run the whole stack in containers, web app included, at <http://localhost:8082> |
+| `make backend-reformat` | Format the Python code and fix the lint errors Ruff can fix |
 | `make frontend-reformat` | Format the frontend code |
-| `make backend-test-ci` | Run the backend tests in a separate, throwaway stack; remove it afterwards with `make backend-clean-ci` |
+| `make backend-test-ci` | Run the backend tests in a separate, throwaway stack; clear it away afterwards with `make backend-clean-ci` |
 | `make frontend-test-ci` | Run the frontend tests |
-| `make clean-dev` | Remove the containers and images, so the next start rebuilds them |
+| `make clean-dev` | Remove the containers and their images, so the next start rebuilds them |
 
-### Testing passkeys over HTTPS
+### Trying passkeys over HTTPS
 
 `make start-dev-https` serves the web app at <https://lvh.me:5173> and forwards
-API calls through Vite at `/api`, so passkeys are registered against a real
-domain over HTTPS, as in production. `lvh.me` is a public domain that resolves
+API calls through Vite at `/api`, so passkeys are created against a real domain
+over HTTPS, just as in production. `lvh.me` is a public domain that points back
 to `127.0.0.1`.
 
 The certificate comes from [mkcert](https://github.com/FiloSottile/mkcert).
@@ -116,54 +146,55 @@ cd frontend && mkcert lvh.me     # write lvh.me.pem and lvh.me-key.pem
 
 Restart the browser afterwards so it picks up the new authority. On Linux,
 Firefox and Chrome trust it only if `certutil` (package `libnss3-tools`) was
-installed before `mkcert -install`. The `.pem` files are ignored by Git.
+installed before `mkcert -install`. Git ignores the `.pem` files.
 
 ---
 
 ## Checks
 
-Every check is a Make target, and the Git hooks and CI run the same targets, so
-a check gives the same result on your machine as in CI.
+Every check is a Make target, and the Git hooks and CI call the very same
+targets, so a check gives the same verdict on your machine as in CI.
 
 | Hook | What it does |
 | --- | --- |
-| `pre-commit` | Runs `make lint-ci` for the parts with staged changes. Frontend: ESLint, Prettier and the TypeScript compiler. Backend: Ruff's format check and mypy. |
+| `pre-commit` | Lints the parts with staged changes through `make lint-ci`: ESLint, Prettier and the TypeScript compiler for the frontend, Ruff's format check and mypy for the backend. When models or migrations are staged, it also checks that the migrations build the schema the models describe. |
 | `pre-push` | Rejects pushes to `master`, so changes reach it only through a pull request |
 
-The hooks only report problems; fix formatting with `make backend-reformat` or
-`make frontend-reformat`. Git skips them with `--no-verify`, and they do nothing
-in a clone that has not enabled them.
+The hooks only report problems; they never rewrite your code. Formatting is
+fixed with `make backend-reformat` or `make frontend-reformat`. Git skips the
+hooks with `--no-verify`, and they stay silent in a clone that has not enabled
+them.
 
 ---
 
 ## CI/CD
 
-The workflow in [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml) runs
-on every push to any branch. Both of its jobs run on a self-hosted runner,
-which is also the production server.
+A single workflow, [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml),
+runs on every push to every branch. Both of its jobs run on a self-hosted
+runner, which is also the production server.
 
 **Build & Test** (`ci` job):
 
 1. Checks each part the push changed. Frontend: lint, type check, tests.
    Backend: lint, type check, a check that the migrations match the models,
    and tests. A new branch or a force push checks both.
-2. Removes the backend test stack, even when a check failed, because the next
+2. Removes the backend test stack, even after a failed check, since the next
    run reuses the runner's workspace.
 3. Builds the `api` and `ui` images and publishes them to the GitHub Container
    Registry, tagged with the commit SHA and `latest`.
 
-**Deploy to production** (`cd` job) runs only on `master`, after `ci`
-succeeds. It restarts the stack with the images `ci` just built on the same
-machine, then waits up to three minutes for the API to report healthy, failing
-the job otherwise.
+**Deploy to production** (`cd` job) runs on `master` only, once `ci` has
+succeeded. It restarts the stack on the images `ci` just built on the same
+machine, then gives the API up to three minutes to report healthy, failing the
+job otherwise.
 
-The workflow handles no secrets: the server's configuration lives in
-`/etc/deplocker/.env`, written by hand. GitHub needs a single repository
-variable:
+No application secret passes through the workflow: the server's configuration
+lives in `/etc/deplocker/.env`, written by hand. GitHub needs a single
+repository variable:
 
 | Variable | Purpose |
 | --- | --- |
-| `PROD_API_URL` | The production API URL, built into the web app's bundle |
+| `PROD_API_URL` | The production API URL, baked into the web app's bundle |
 
 ---
 

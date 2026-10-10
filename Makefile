@@ -21,8 +21,8 @@ FRONTEND           = ./frontend
 
 UV                := $(shell which uv)
 
-# Both compose stacks live at the project root. The dev stack keeps `ui` behind
-# a profile; the test stack is self-contained and uses its own project name.
+# The dev stack keeps `ui` behind a profile; the test stack is self-contained,
+# under its own project name.
 COMPOSE_DEV_FILE   = docker-compose.yml
 COMPOSE_TEST_FILE  = docker-compose.test.yml
 
@@ -234,8 +234,8 @@ $(BUILD_DEV_STAMP): $(COMPOSE_DEV_FILE) $(BACKEND)/Dockerfile $(BACKEND)/.docker
 	$(DC) -f $(COMPOSE_DEV_FILE) --profile frontend build
 	@touch $(BUILD_DEV_STAMP)
 
-## Remove the build stamp and tear down the stack, including the ui service.
-## The next `make build-dev` will rebuild everything.
+## Tear the stack down, ui included, and remove its images, so the next start
+## rebuilds them
 clean-dev:
 	@rm -f $(BUILD_DEV_STAMP)
 	$(DC) -f $(COMPOSE_DEV_FILE) --profile frontend down --rmi all
@@ -256,11 +256,8 @@ define start_dev_backend
 	|| { $(DC) -f $(COMPOSE_DEV_FILE) logs --tail 30 api; exit 1; }
 endef
 
-## Start only backend as containers in the foreground.
-## The `DEV_FRONTEND_URL` environment variable is passed to the api container
-## This way, it can redirect to the frontend dev server.
-## In this , the frontend will have the hot reloading capability, enabling real-time testing of changes,
-## without rebuilding the image.
+## Start the backend containers detached, then the Vite dev server in the
+## foreground, which reloads the page on every edit
 start-dev: $(BUILD_DEV_STAMP)
 	$(call start_dev_backend,http://localhost:5173)
 	cd frontend && API_URL='http://localhost:8080' npm run dev

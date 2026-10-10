@@ -24,7 +24,7 @@ async def _github_request(method: str, url: str, **kw: Any) -> Any:
             resp.raise_for_status()
             payload: Any = resp.json()
         except httpx.HTTPStatusError as exc:
-            # GitHub reachable but rejected us (revoked token, missing scope, rate limit).
+            # Reachable, but rejected: revoked token, missing scope, rate limit
             logger.warning(
                 "GitHub API %s %s -> %s: %s",
                 method,

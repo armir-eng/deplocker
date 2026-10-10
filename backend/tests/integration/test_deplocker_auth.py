@@ -148,7 +148,7 @@ async def test_session_check(client: AsyncClient) -> None:
         },
     )
 
-    # The cookie is automatically stored and resent between requests by httpx
+    # httpx keeps the session cookie and sends it back
     response = await client.get("/auth/session/check")
     assert response.status_code == 200
 

@@ -74,11 +74,8 @@ async def register_new_user(
     await db_session.commit()
     await db_session.refresh(new_user)
 
-    # Send the confirmation email to the registered email address
     confirmation_email_task: Task = send_confirmation_email
-    jwt_token = generate_jwt(
-        sub=new_user.email, expire_minutes=1440
-    )  # Generate a 24-hour valid token
+    jwt_token = generate_jwt(sub=new_user.email, expire_minutes=24 * 60)
     result: AsyncResult = confirmation_email_task.delay(new_user.email, jwt_token)
     task_id = result.id
 
@@ -142,7 +139,6 @@ async def confirm_new_account(
 
 @router.post("/account/confirm/retry")
 async def resend_confirmation_email(email: EmailStr) -> JSONResponse:
-    # Send the confirmation email to the registered email address
     confirmation_email_task: Task = send_confirmation_email
     jwt_token = generate_jwt(sub=email)
     result: AsyncResult = confirmation_email_task.delay(email, jwt_token)

@@ -62,9 +62,8 @@ def test_generate_jwt() -> None:
     )
 
     assert decoded.get("sub") == "armir.shehaj@gmail.com"
-    assert (
-        type(decoded.get("exp")) is int
-    )  # JWT encodes the "exp" claim into Unix timestamps
+    # JWT encodes "exp" as a Unix timestamp
+    assert type(decoded.get("exp")) is int
 
 
 @pytest.mark.anyio
@@ -88,7 +87,7 @@ def test_malformed_email_on_user_register(
     test_user_register_payload: dict[str, str],
 ) -> None:
     payload = test_user_register_payload
-    payload["email"] = "armir.shehaj@"  # Unsettle the email to a wrong one
+    payload["email"] = "armir.shehaj@"  # No domain
 
     with pytest.raises(ValidationError):
         UserRegister(**payload)

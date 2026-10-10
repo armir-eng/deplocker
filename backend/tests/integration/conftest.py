@@ -184,7 +184,8 @@ async def foreign_deployment(
     return deployment
 
 
-# Used for multiple records creation for listing requests.
+# Creates an application in the test project, checking the response and the
+# defaults it applies
 @pytest.fixture()
 async def application_factory(
     authenticated_client: AsyncClient, project_create_test: Response
@@ -218,7 +219,7 @@ async def application_factory(
             assert schema_object.env_vars == response_data["env_vars"]
             assert schema_object.domain == response_data["domain"]
 
-            # Assert the default values (intentionally not provided in the request payload)
+            # Defaults for the fields the payload leaves out
             assert schema_object.branch == "main"
             assert schema_object.dockerfile_path == "./Dockerfile"
             assert schema_object.port == 8000
@@ -232,7 +233,7 @@ async def application_factory(
     return create
 
 
-# Used for intermediary requests, inside READ, UPDATE AND DELETE endpoint tests.
+# The application the read, update and delete tests act on
 @pytest.fixture()
 async def application_create_test(
     application_factory: Callable[..., Awaitable[Response]],

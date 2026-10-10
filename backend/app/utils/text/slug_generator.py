@@ -6,12 +6,9 @@ from pydantic import AfterValidator
 
 
 def generate_slug(name: str) -> str:
-    """
-    Converts a string into URL-safe slug
-    Removes accents, converts to lowercase, replaces spaces with hyphens,
-    and strips special characters.
+    """Converts a name into a lowercase, URL-safe slug, raising ValueError when
+    no letter or digit survives.
 
-    Examples:
         "Café Médiatech" → "cafe-mediatech"
         "My___Org" → "my-org"
     """
@@ -19,10 +16,10 @@ def generate_slug(name: str) -> str:
     slug = anyascii(name)
     slug = slug.lower()
 
-    slug = re.sub(r"[\s_]", "-", slug)  # Replace spaces and underscores with hyphens
-    slug = re.sub(r"[^a-z0-9-]", "", slug)  # Remove all non-alphanumeric except hyphens
-    slug = re.sub(r"-+", "-", slug)  # Remove duplicate hyphens
-    slug = slug.strip("-")  # Strip leading or trailing hyphens
+    slug = re.sub(r"[\s_]", "-", slug)
+    slug = re.sub(r"[^a-z0-9-]", "", slug)
+    slug = re.sub(r"-+", "-", slug)
+    slug = slug.strip("-")
 
     if not slug:
         raise ValueError("Name must contain at least one alphanumeric character!")

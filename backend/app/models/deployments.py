@@ -27,19 +27,13 @@ class DeploymentModel(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     commit_hash: Mapped[str] = mapped_column(String(40), nullable=True)
 
-    # Log storage information
-    log_uri: Mapped[str] = mapped_column(
-        String(255), nullable=True
-    )  # URI to the log file locally, or in a cloud storage service (e.g., S3, GCS)
-    log_size: Mapped[int] = mapped_column(
-        nullable=True
-    )  # The log file size is expressed in bytes
+    # The log file, on local disk or in cloud storage such as S3 or GCS
+    log_uri: Mapped[str] = mapped_column(String(255), nullable=True)
+    log_size: Mapped[int] = mapped_column(nullable=True)  # In bytes
 
-    # Relational instances
     application: Mapped["ApplicationModel"] = relationship(back_populates="deployments")  # type: ignore[name-defined]
 
-    # Composite index that enables filtering/sorting queries by application and time
-    # For example: Getting the most recent deployments for application
+    # Serves an application's deployments, most recent first
     __table_args__ = (
         Index("ix_deployments_app_started", "application_id", "started_at"),
     )

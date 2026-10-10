@@ -56,10 +56,10 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   // react-hook-form's watch() cannot be memoized by the React Compiler; this is
   // the documented way to observe a field value.
   // eslint-disable-next-line react-hooks/incompatible-library
-  const username = form.watch("username"); // Track the username field value
+  const username = form.watch("username");
 
   useEffect(() => {
-    setUsernameAvailable(null); // Remove the availability message before the check request
+    setUsernameAvailable(null);
     if (!username || username.length < 3) return;
     const timer = setTimeout(async () => {
       const request = new HttpRequest(
@@ -92,9 +92,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   const onSubmit = async (data: z.infer<typeof RegisterRequest>) => {
     const endpointURL = `${API_URL}/auth/register`;
 
-    // Field is not expected in the payload to the signup (register) endpoint.
-    // It is only used for client-side form validation.
-    // This way, we delete it from the object.
+    // Checked client-side only; the register endpoint doesn't take it
     delete data["confirm_password"];
 
     const request = new HttpRequest(endpointURL, {

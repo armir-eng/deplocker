@@ -60,7 +60,7 @@ export default class HttpRequest {
           if (error instanceof z.ZodError) {
             return [null, `Invalid response shape: ${z.prettifyError(error)}`];
           }
-          throw error; // Rethrow any unexpected issue
+          throw error;
         }
       }
 
