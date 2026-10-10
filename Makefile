@@ -21,10 +21,16 @@ FRONTEND           = ./frontend
 
 UV                := $(shell which uv)
 
-# The dev stack keeps `ui` behind a profile; the test stack is self-contained,
-# under its own project name.
+# The dev stack keeps `ui` behind a profile; the prod file layers Caddy over it;
+# the test stack is self-contained, under its own project name.
 COMPOSE_DEV_FILE   = docker-compose.yml
+COMPOSE_PROD_FILE  = docker-compose.prod.yml
 COMPOSE_TEST_FILE  = docker-compose.test.yml
+
+# The server's configuration, which also supplies Caddy's site addresses
+PROD_ENV_FILE      = /etc/deplocker/.env
+DC_PROD            = $(DC) -f $(COMPOSE_DEV_FILE) -f $(COMPOSE_PROD_FILE) \
+                     --env-file $(PROD_ENV_FILE) --profile frontend
 
 BUILD_DEV_STAMP    = .build-dev.stamp
 FRONTEND_MODULES   = $(FRONTEND)/node_modules
@@ -310,8 +316,11 @@ publish-ci: backend-publish-ci frontend-publish-ci
 ## so this reuses the local :latest images and never reaches the registry.
 ##
 ## --wait blocks until api reports healthy and fails the job if it does not.
+## `up` leaves an unchanged caddy container running, so the reload applies the
+## checked-out Caddyfile; Caddy skips it when the file is unchanged.
 deploy-cd:
-	$(DC) -f $(COMPOSE_DEV_FILE) --profile frontend up -d \
+	$(DC_PROD) up -d \
 		--wait \
 		--wait-timeout 180 \
 		--remove-orphans
+	$(DC_PROD) exec -T caddy caddy reload --config /etc/caddy/Caddyfile

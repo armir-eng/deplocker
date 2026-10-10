@@ -34,19 +34,23 @@ passkey.
 
 ## Architecture
 
-Five services, one Compose file, [docker-compose.yml](docker-compose.yml):
+Five services make up the stack in [docker-compose.yml](docker-compose.yml). In
+production, [docker-compose.prod.yml](docker-compose.prod.yml) puts a sixth,
+Caddy, in front of them:
 
 ```mermaid
 flowchart LR
     browser(["Browser"])
+    caddy{{"caddy<br/>HTTPS · production"}}
     ui["ui<br/>nginx · React"]
     api["api<br/>FastAPI · Celery worker"]
     postgres[("postgres")]
     redis[("redis-stack")]
     rabbitmq[["rabbitmq"]]
 
-    browser -->|pages| ui
-    browser -->|API calls| api
+    browser --> caddy
+    caddy -->|pages| ui
+    caddy -->|API calls| api
     api --> postgres
     api --> redis
     api <--> rabbitmq
@@ -54,8 +58,9 @@ flowchart LR
 
 | Service | Role | Host port |
 | --- | --- | --- |
-| `api` | The REST API ([FastAPI](https://fastapi.tiangolo.com/)), and a [Celery](https://docs.celeryq.dev/) worker for background jobs such as confirmation emails | `127.0.0.1:8080` |
-| `ui` | The web app (React, Vite, Tailwind), served by nginx | `8082` |
+| `caddy` | The server's web server, in production only. It holds the certificates for the web app's and the API's domains and hands each request to the right container | `80`, `443` |
+| `api` | The REST API ([FastAPI](https://fastapi.tiangolo.com/)), and a [Celery](https://docs.celeryq.dev/) worker for background jobs such as confirmation emails | `127.0.0.1:8080`, in development only |
+| `ui` | The web app (React, Vite, Tailwind), served by nginx | `8082`, in development only |
 | `postgres` | The main database | `5435` |
 | `redis-stack` | Login sessions and background job results | `6380` |
 | `rabbitmq` | The queue that hands background jobs to the worker | `5672`, admin UI `15672` |
@@ -63,6 +68,41 @@ flowchart LR
 The backend's inner workings are described in
 [backend/CLAUDE.md](backend/CLAUDE.md), and its database, table by table, in
 [backend/docs/models.md](backend/docs/models.md).
+
+### Why Caddy
+
+Like Dokploy with Traefik, Deplocker brings its own web server: deploying the
+stack hands Caddy ports 80 and 443, and with them every request that reaches
+the server. Today Caddy serves two sites, the web app and the API. It was
+chosen for what the server will carry next. Every application on Deplocker has
+a domain of its own, and that domain alone decides which application a request
+is for. The web server in front must keep a valid certificate for every one of
+those domains, and pick up a new route the moment a deployment needs it,
+without a restart.
+
+- **HTTPS takes no setup.** Caddy obtains a certificate for every domain it
+  serves, renews it ahead of expiry and redirects plain HTTP to HTTPS. There is
+  no certbot to install and no renewal job to schedule.
+- **Its configuration is an API.** Caddy's admin API accepts a whole new
+  configuration, or a change to a single route, while Caddy runs, and applies
+  it without dropping a connection. That lets the Deplocker API route an
+  application's domain as part of deploying it.
+- **It handles domains nobody listed in advance.** With on-demand TLS, Caddy
+  obtains a certificate during the first visit to a domain, after asking an
+  endpoint whether that domain may have one. For Deplocker, the answer is
+  whether an application claims it.
+- **Its configuration stays short.** Both sites fit in a dozen lines of
+  [caddy/Caddyfile](caddy/Caddyfile).
+
+The two usual alternatives fall short on the second point:
+
+- **Traefik** manages certificates just as well, but its API is read-only.
+  Routes reach it through providers: configuration files the platform keeps
+  rewriting, or labels on containers, which means handing the internet-facing
+  proxy the Docker socket, root access to the host in all but name.
+- **nginx** takes changes only by rewriting its files and reloading; an API
+  that changes upstreams at runtime is a feature of the commercial NGINX Plus.
+  Its certificates come from a separate tool or module, set up alongside it.
 
 ---
 
@@ -186,11 +226,14 @@ runner, which is also the production server.
 **Deploy to production** (`cd` job) runs on `master` only, once `ci` has
 succeeded. It restarts the stack on the images `ci` just built on the same
 machine, then gives the API up to three minutes to report healthy, failing the
-job otherwise.
+job otherwise. Last, it reloads Caddy with the commit's Caddyfile, which Caddy
+applies without a restart.
 
 No application secret passes through the workflow: the server's configuration
-lives in `/etc/deplocker/.env`, written by hand. GitHub needs a single
-repository variable:
+lives in `/etc/deplocker/.env`, written by hand. Its `PROD_FRONTEND_URL` and
+`PROD_PUBLIC_URL` are also the addresses Caddy serves, so both domains need DNS
+records pointing at the server, and no other program on it may hold ports 80
+and 443. GitHub needs a single repository variable:
 
 | Variable | Purpose |
 | --- | --- |

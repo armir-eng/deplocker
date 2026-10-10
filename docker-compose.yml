@@ -1,5 +1,6 @@
 # Development stack for the whole project. The `ui` service sits behind a
-# profile, so a bare `docker compose up` brings up the backend only.
+# profile, so a bare `docker compose up` brings up the backend only. In
+# production, docker-compose.prod.yml layers Caddy over it.
 #
 #   docker compose up                        # backend
 #   docker compose --profile frontend up -d  # backend + ui
